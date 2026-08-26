@@ -1121,12 +1121,6 @@
   text-align: right;
 }
 
-.ct-cbgp-file {
-  font-size: 13px;
-  flex: 1;
-  min-width: 0;
-}
-
 .ct-cbgp-note {
   font-size: 12px;
   line-height: 1.6;

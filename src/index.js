@@ -1925,14 +1925,24 @@ export function activate({ api, node, ui }) {
     localTitle.textContent = isChinese ? "本地图片" : "Local image";
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.className = "ct-cbgp-file";
+    fileInput.hidden = true;
     fileInput.accept = "image/*";
     fileInput.setAttribute("data-slot", "file-input");
     fileInput.addEventListener("change", () => {
       const file = fileInput.files?.[0];
       if (file) applyLocalFile(file);
     });
-    localRow.append(localTitle, fileInput);
+    const fileButton = toolButton(
+      state.dataUrl
+        ? isChinese ? "更换图片" : "Change image"
+        : isChinese ? "选择图片" : "Choose image",
+      () => {
+        fileInput.value = "";
+        fileInput.click();
+      },
+    );
+    fileButton.setAttribute("data-slot", "file-button");
+    localRow.append(localTitle, fileInput, fileButton);
     sourceSection.append(localRow);
     container.append(sourceSection);
 
