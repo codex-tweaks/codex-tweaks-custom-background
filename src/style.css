@@ -170,6 +170,27 @@
   background-image: none !important;
 }
 
+/* 收起侧边栏后，Codex 会在外壳上动画 opacity 与 transform。opacity 小于
+   1 时外壳会成为 Backdrop Root，因此磨砂必须与动画放在同一个外壳上；
+   放在内层 aside 会在动画结束前无法采样主内容，并在终点突然跳变。 */
+:root[data-codex-tweaks-cbgp-theme]
+  [data-pip-obstacle="app-shell-floating-left-panel"] {
+  border-radius: 8px;
+  background-color: rgba(246, 246, 246, 0.72);
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+}
+
+:root:not(.electron-light)[data-codex-tweaks-cbgp-theme]
+  [data-pip-obstacle="app-shell-floating-left-panel"] {
+  background-color: rgba(20, 20, 24, 0.72);
+}
+
+:root[data-codex-tweaks-cbgp-theme]
+  [data-testid="app-shell-floating-left-panel"] {
+  background-color: transparent !important;
+}
+
 /* ------------------------------ 随机按钮 ------------------------------ */
 
 [data-codex-tweaks-cbgp-random-button] {
