@@ -60,6 +60,39 @@ test("removes the thread composer surface fade that becomes a translucent band",
   );
 });
 
+test("gives only the floating sidebar a readable themed material", () => {
+  const floatingShellRule = css.match(
+    /:root\[data-codex-tweaks-cbgp-theme\][^{]*\[data-pip-obstacle="app-shell-floating-left-panel"\]\s*\{([^}]*)\}/s,
+  )?.[1];
+  assert.ok(floatingShellRule, "missing the floating sidebar material shell");
+  assert.match(
+    floatingShellRule,
+    /background-color:\s*rgba\(246,\s*246,\s*246,\s*0\.72\)/,
+  );
+  assert.match(
+    floatingShellRule,
+    /backdrop-filter:\s*blur\(var\(--ct-cbgp-frost-blur,\s*17px\)\)\s*saturate\(1\.14\)/,
+  );
+  assert.doesNotMatch(
+    floatingShellRule,
+    /\b(?:opacity|transform|will-change)\s*:/,
+  );
+
+  assert.match(
+    css,
+    /:root:not\(\.electron-light\)\[data-codex-tweaks-cbgp-theme\][^{]*\[data-pip-obstacle="app-shell-floating-left-panel"\]\s*\{[^}]*background-color:\s*rgba\(20,\s*20,\s*24,\s*0\.72\)/s,
+  );
+  assert.match(
+    css,
+    /:root\[data-codex-tweaks-cbgp-theme\][^{]*\[data-testid="app-shell-floating-left-panel"\]\s*\{[^}]*background-color:\s*transparent\s*!important/s,
+  );
+  const dockedSidebarRule = css.match(
+    /:root\[data-codex-tweaks-cbgp-theme\]\s+\.app-shell-left-panel\s*\{([^}]*)\}/,
+  )?.[1];
+  assert.ok(dockedSidebarRule, "missing the docked sidebar transparency rule");
+  assert.match(dockedSidebarRule, /background-color:\s*transparent\s*!important/);
+});
+
 test("keeps the draggable button geometry unscaled", () => {
   const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
   const rootRule = css.match(
