@@ -1,0 +1,1419 @@
+/* Codex 自定义背景包：壁纸层、随机按钮、设置内容（全部以 data-codex-tweaks-cbgp-* 作用域） */
+
+/* ------------------------------ 壁纸层 ------------------------------ */
+
+[data-codex-tweaks-cbgp-wallpaper] {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* 图片、背景磨砂和颜色遮罩拆成独立层：背景磨砂只模糊原图，遮罩颜色
+   保持均匀；扩大图片层可避免高强度模糊在窗口边缘产生空白。 */
+[data-codex-tweaks-cbgp-wallpaper]::before,
+[data-codex-tweaks-cbgp-wallpaper]::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+[data-codex-tweaks-cbgp-wallpaper]::before {
+  z-index: 0;
+  inset: calc(-1 * var(--ct-cbgp-background-frost-overscan, 0px));
+  background-image: var(--ct-cbgp-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(var(--ct-cbgp-background-frost-blur, 0px));
+  transition: filter 180ms ease, inset 180ms ease;
+}
+
+[data-codex-tweaks-cbgp-wallpaper]::after {
+  z-index: 1;
+  inset: 0;
+  background-color: rgb(
+    var(--ct-cbgp-mask-light-rgb, 246 246 246) /
+    var(--ct-cbgp-mask-light-opacity, 0.72)
+  );
+  transition: background-color 160ms ease;
+}
+
+[data-codex-tweaks-cbgp-wallpaper][hidden] {
+  display: none;
+}
+
+/* 透明来源仍保留壁纸层作为颜色遮罩与窗口底层磨砂的承载面，但不绘制
+   图片。背景磨砂在这里使用 backdrop-filter，因此可与控件磨砂独立组合。 */
+[data-codex-tweaks-cbgp-wallpaper][data-codex-tweaks-cbgp-transparent]::before {
+  inset: 0;
+  background-image: none;
+  filter: none;
+}
+
+:root[data-codex-tweaks-cbgp-background-frost]
+  [data-codex-tweaks-cbgp-wallpaper][data-codex-tweaks-cbgp-transparent] {
+  backdrop-filter:
+    blur(var(--ct-cbgp-background-frost-blur, 0px))
+    saturate(1.12);
+  -webkit-backdrop-filter:
+    blur(var(--ct-cbgp-background-frost-blur, 0px))
+    saturate(1.12);
+}
+
+:root:not(.electron-light) [data-codex-tweaks-cbgp-wallpaper]::after {
+  background-color: rgb(
+    var(--ct-cbgp-mask-dark-rgb, 20 20 24) /
+    var(--ct-cbgp-mask-dark-opacity, 0.76)
+  );
+}
+
+/* Codex 会在 macOS 窗口失焦时给根节点加上 electron-opaque，并把 html/body
+   恢复为不透明窗口底色。壁纸节点本身仍然存在，但会被这层底色遮住；只在
+   自定义背景启用时恢复与聚焦状态相同的透明画布。 */
+:root.electron-opaque[data-codex-tweaks-cbgp-theme],
+:root.electron-opaque[data-codex-tweaks-cbgp-theme] body {
+  background-color: transparent !important;
+}
+
+/* Codex 的主内容、设置页、侧边聊天及其顶/底渐变都消费同一个语义表面
+   令牌。只在壁纸启用时覆盖令牌，路由或面板重建后会自然继承；输入框、
+   按钮、菜单和弹窗继续使用各自的 control/elevated 令牌。 */
+:root[data-codex-tweaks-cbgp-theme] {
+  --color-background-surface: rgba(255, 255, 255, 0.1) !important;
+}
+
+:root:not(.electron-light)[data-codex-tweaks-cbgp-theme] {
+  --color-background-surface: rgba(20, 20, 24, 0.14) !important;
+}
+
+/* App shell 的顶部滚动渐隐在不透明表面上用于衔接工具栏；新对话页露出
+   壁纸后，它会变成一条单独的浅色横带。只在 home composer 存在时移除
+   这层渐变，普通会话滚动页继续保留原生的顶部内容保护。 */
+:root[data-codex-tweaks-cbgp-theme]:has([data-composer-placement="home"])
+  [data-app-shell-main-content-top-fade] {
+  background-image: none !important;
+}
+
+/* 会话页会在输入框后方铺一层 from/via-surface 的底部保护渐变。surface
+   变为半透明后，渐变中段会显成边界突兀的浅色横带；输入框已有独立磨砂
+   材质，因此只在自定义背景启用时移除这层装饰。 */
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-action-timeline-scroll]
+  [aria-hidden="true"][class~="bg-gradient-to-t"][class~="from-surface"][class~="via-surface"] {
+  background-image: none !important;
+}
+
+/* 控件磨砂与背景磨砂使用不同标记。这里只覆盖 Codex 的面板/柔和控件
+   语义令牌；ghost hover 令牌保持原生值，避免选项高亮再次被改写。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost] {
+  --color-background-panel: rgba(255, 255, 255, 0.5) !important;
+  --color-background-primary-soft: rgba(255, 255, 255, 0.64) !important;
+  --color-background-primary-soft-alpha: rgba(255, 255, 255, 0.58) !important;
+  --ct-cbgp-control-frost-surface: rgba(255, 255, 255, 0.62);
+}
+
+:root:not(.electron-light)[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost] {
+  --color-background-panel: rgba(34, 34, 40, 0.54) !important;
+  --color-background-primary-soft: rgba(38, 38, 46, 0.64) !important;
+  --color-background-primary-soft-alpha: rgba(42, 42, 50, 0.6) !important;
+  --ct-cbgp-control-frost-surface: rgba(38, 38, 46, 0.66);
+}
+
+/* 新对话页的 composer surface 根节点只是一个无圆角布局壳，真正的圆角材质
+   由内层 ComposerLayoutBody 提供。不要给 home 壳叠加背景或模糊，否则会在
+   圆角输入框后面形成矩形底板，并阻断内层对壁纸的原生 backdrop blur。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  :is(
+    [style*="--color-background-panel"],
+    [class~="bg-primary-soft-alpha"],
+    [class*="bg-background-primary-soft/"],
+    [data-composer-surface-variant]:not([data-composer-utility-bar-variant="home"]),
+    .ct-cbgp-select-trigger,
+    .ct-cbgp-input
+  ) {
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+}
+
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-composer-surface-variant]:not([data-composer-utility-bar-variant="home"]),
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  :is(.ct-cbgp-select-trigger, .ct-cbgp-input),
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [class~="bg-primary-soft-alpha"]:not(:hover):not([data-state="open"]) {
+  background-color: var(--ct-cbgp-control-frost-surface) !important;
+}
+
+/* 首页建议卡片原本把 ghost hover 当作叠加色使用；基础表面透明后需单独
+   提供实体悬浮材质，但不能修改全局 ghost hover，否则菜单和列表也会变色。 */
+:root[data-codex-tweaks-cbgp-theme]
+  main
+  section
+  button[class~="bg-surface"][class~="rounded-2xl"][class~="hover:bg-primary-ghost-hover"]:hover {
+  background-color: rgba(255, 255, 255, 0.78) !important;
+}
+
+:root:not(.electron-light)[data-codex-tweaks-cbgp-theme]
+  main
+  section
+  button[class~="bg-surface"][class~="rounded-2xl"][class~="hover:bg-primary-ghost-hover"]:hover {
+  background-color: rgba(48, 48, 56, 0.78) !important;
+}
+
+/* 左侧导航使用独立的 Electron 半透明白底，不消费 surface 令牌。它是
+   少数需要按稳定宿主结构单独归零的表面，内部选中与悬浮状态仍由原生控件负责。 */
+:root[data-codex-tweaks-cbgp-theme] .app-shell-left-panel {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* ------------------------------ 随机按钮 ------------------------------ */
+
+[data-codex-tweaks-cbgp-random-button] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 45;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  translate: var(--ct-cbgp-button-x, 0px) var(--ct-cbgp-button-y, 0px);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  isolation: isolate;
+  overflow: visible;
+}
+
+[data-codex-tweaks-cbgp-random-trigger] {
+  position: relative;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  color: #4a4a4a;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(18px) saturate(1.32);
+  -webkit-backdrop-filter: blur(18px) saturate(1.32);
+  cursor: grab;
+  transition:
+    background-color 160ms ease-out,
+    color 160ms ease-out,
+    box-shadow 180ms ease-out;
+}
+
+/* Neodrag 会用根节点的 offsetWidth / getBoundingClientRect() 推导页面缩放。
+   根节点参与 hover/press 缩放时会把控件动画误判成坐标缩放，拖动位置因此
+   偏离指针。保持 44px 拖拽几何不变，只让内部图标承担按压与拖动反馈。 */
+[data-codex-tweaks-cbgp-random-trigger] > svg {
+  pointer-events: none;
+  scale: 1;
+  transition: scale 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root:not(.electron-light) [data-codex-tweaks-cbgp-random-trigger] {
+  background: rgba(32, 32, 38, 0.52);
+  color: #e6e6e6;
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.38);
+}
+
+[data-codex-tweaks-cbgp-random-button]
+  [data-codex-tweaks-cbgp-random-trigger]:is(:hover, :focus-visible):not(:disabled),
+[data-codex-tweaks-cbgp-random-button][data-expanded]
+  [data-codex-tweaks-cbgp-random-trigger] {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.2);
+}
+
+[data-codex-tweaks-cbgp-random-button]:not([data-dragging])
+  [data-codex-tweaks-cbgp-random-trigger]:is(:hover, :focus-visible) > svg,
+[data-codex-tweaks-cbgp-random-button][data-expanded]
+  [data-codex-tweaks-cbgp-random-trigger] > svg {
+  scale: 1.06;
+}
+
+:root:not(.electron-light)
+  [data-codex-tweaks-cbgp-random-button]
+  [data-codex-tweaks-cbgp-random-trigger]:is(:hover, :focus-visible),
+:root:not(.electron-light)
+  [data-codex-tweaks-cbgp-random-button][data-expanded]
+  [data-codex-tweaks-cbgp-random-trigger] {
+  background: rgba(54, 54, 62, 0.72);
+}
+
+[data-codex-tweaks-cbgp-random-button]:not([data-dragging])
+  [data-codex-tweaks-cbgp-random-trigger]:active > svg {
+  scale: 0.97;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-dragging] {
+  will-change: translate;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-dragging]
+  [data-codex-tweaks-cbgp-random-trigger] {
+  cursor: grabbing;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+  transition: none;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-dragging]
+  [data-codex-tweaks-cbgp-random-trigger] > svg {
+  scale: 1.04;
+  transition: none;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-snapping] {
+  will-change: translate;
+  transition: translate 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-codex-tweaks-cbgp-random-trigger]:focus-visible,
+[data-codex-tweaks-cbgp-quick-action]:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+[data-codex-tweaks-cbgp-random-button][hidden] {
+  display: none;
+}
+
+[data-codex-tweaks-cbgp-random-button][aria-busy="true"]
+  [data-codex-tweaks-cbgp-random-trigger] > svg {
+  animation: ct-cbgp-spin 900ms linear infinite;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-loading]
+  [data-codex-tweaks-cbgp-random-trigger] {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-failed]
+  [data-codex-tweaks-cbgp-random-trigger] {
+  animation: ct-cbgp-shake 360ms ease;
+  color: #d8454b;
+}
+
+/* 快捷操作保持绝对定位，永远不改变 44px 拖拽根节点的布局几何。默认从
+   主按钮背后向上展开，仅在顶部空间不足时向下避让；只过渡合成层属性。 */
+[data-codex-tweaks-cbgp-quick-actions] {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(248, 248, 250, 0.66);
+  color: #4b4b50;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20px) saturate(1.35);
+  -webkit-backdrop-filter: blur(20px) saturate(1.35);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate3d(-50%, 10px, 0) scale(0.84);
+  transform-origin: center bottom;
+  transition:
+    transform 170ms cubic-bezier(0.4, 0, 1, 1),
+    opacity 110ms ease-in,
+    visibility 0s linear 170ms;
+}
+
+[data-codex-tweaks-cbgp-quick-actions]::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 100%;
+  height: 12px;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-expand-down]
+  [data-codex-tweaks-cbgp-quick-actions] {
+  top: calc(100% + 8px);
+  bottom: auto;
+  transform: translate3d(-50%, -10px, 0) scale(0.84);
+  transform-origin: center top;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-expand-down]
+  [data-codex-tweaks-cbgp-quick-actions]::before {
+  top: auto;
+  bottom: 100%;
+}
+
+[data-codex-tweaks-cbgp-random-button]
+  [data-codex-tweaks-cbgp-quick-action] {
+  --ct-cbgp-quick-opacity: 1;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transform: translate3d(0, 8px, 0) scale(0.76);
+  scale: 1;
+  transition:
+    transform 150ms cubic-bezier(0.4, 0, 1, 1),
+    opacity 100ms ease-in,
+    scale 100ms ease-out,
+    background-color 140ms ease-out,
+    color 140ms ease-out;
+}
+
+[data-codex-tweaks-cbgp-quick-action]:nth-child(1) {
+  --ct-cbgp-quick-delay: 68ms;
+}
+
+[data-codex-tweaks-cbgp-quick-action]:nth-child(2) {
+  --ct-cbgp-quick-delay: 46ms;
+}
+
+[data-codex-tweaks-cbgp-quick-action]:nth-child(3) {
+  --ct-cbgp-quick-delay: 24ms;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-expand-down]
+  [data-codex-tweaks-cbgp-quick-action] {
+  transform: translate3d(0, -8px, 0) scale(0.76);
+}
+
+[data-codex-tweaks-cbgp-quick-action][data-dormant] {
+  --ct-cbgp-quick-opacity: 0.62;
+}
+
+[data-codex-tweaks-cbgp-quick-action]:disabled {
+  --ct-cbgp-quick-opacity: 0.34;
+  cursor: default;
+}
+
+[data-codex-tweaks-cbgp-random-button]
+  [data-codex-tweaks-cbgp-quick-action]:hover:not(:disabled) {
+  background: rgba(60, 60, 67, 0.1);
+}
+
+[data-codex-tweaks-cbgp-quick-action][aria-pressed="true"] {
+  background: rgba(0, 113, 227, 0.13);
+  color: #006bd6;
+}
+
+[data-codex-tweaks-cbgp-quick-action]:active:not(:disabled) {
+  scale: 0.93;
+}
+
+/* 原生 title 的出现时间与样式无法控制。这里用属性内容绘制轻量提示，保持
+   边缘感知且不增加 DOM 浮层、监听器或定时轮询。 */
+[data-codex-tweaks-cbgp-tooltip]::before,
+[data-codex-tweaks-cbgp-tooltip]::after {
+  position: absolute;
+  z-index: 12;
+  top: 50%;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 120ms ease-out,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 120ms;
+}
+
+[data-codex-tweaks-cbgp-tooltip]::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+[data-codex-tweaks-cbgp-tooltip]::after {
+  content: attr(data-codex-tweaks-cbgp-tooltip);
+  max-width: min(240px, calc(100vw - 80px));
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(31, 31, 35, 0.94);
+  color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  font: 500 12px/1.25 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-tooltip-side="left"]
+  [data-codex-tweaks-cbgp-tooltip]::after {
+  right: calc(100% + 10px);
+  transform: translate3d(4px, -50%, 0) scale(0.96);
+  transform-origin: right center;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-tooltip-side="left"]
+  [data-codex-tweaks-cbgp-tooltip]::before {
+  right: calc(100% + 4px);
+  border-left: 6px solid rgba(31, 31, 35, 0.94);
+  transform: translate3d(4px, -50%, 0);
+}
+
+[data-codex-tweaks-cbgp-random-button]:not([data-tooltip-side="left"])
+  [data-codex-tweaks-cbgp-tooltip]::after {
+  left: calc(100% + 10px);
+  transform: translate3d(-4px, -50%, 0) scale(0.96);
+  transform-origin: left center;
+}
+
+[data-codex-tweaks-cbgp-random-button]:not([data-tooltip-side="left"])
+  [data-codex-tweaks-cbgp-tooltip]::before {
+  left: calc(100% + 4px);
+  border-right: 6px solid rgba(31, 31, 35, 0.94);
+  transform: translate3d(-4px, -50%, 0);
+}
+
+[data-codex-tweaks-cbgp-random-button]:not([data-dragging])
+  [data-codex-tweaks-cbgp-tooltip]:is(:hover, :focus-visible)::before,
+[data-codex-tweaks-cbgp-random-button]:not([data-dragging])
+  [data-codex-tweaks-cbgp-tooltip]:is(:hover, :focus-visible)::after {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 360ms, 360ms, 0ms;
+}
+
+[data-codex-tweaks-cbgp-random-button][data-tooltip-side="left"]
+  [data-codex-tweaks-cbgp-tooltip]:is(:hover, :focus-visible)::before,
+[data-codex-tweaks-cbgp-random-button][data-tooltip-side="left"]
+  [data-codex-tweaks-cbgp-tooltip]:is(:hover, :focus-visible)::after,
+[data-codex-tweaks-cbgp-random-button]:not([data-tooltip-side="left"])
+  [data-codex-tweaks-cbgp-tooltip]:is(:hover, :focus-visible)::before,
+[data-codex-tweaks-cbgp-random-button]:not([data-tooltip-side="left"])
+  [data-codex-tweaks-cbgp-tooltip]:is(:hover, :focus-visible)::after {
+  transform: translate3d(0, -50%, 0) scale(1);
+}
+
+.ct-cbgp-quick-action-indicator {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  scale: 0.4;
+  transition:
+    opacity 140ms ease-out,
+    scale 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-codex-tweaks-cbgp-quick-action][aria-pressed="true"]
+  .ct-cbgp-quick-action-indicator {
+  opacity: 0.82;
+  scale: 1;
+}
+
+:root:not(.electron-light) [data-codex-tweaks-cbgp-quick-actions] {
+  background: rgba(34, 34, 40, 0.7);
+  color: #e6e6eb;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
+}
+
+:root:not(.electron-light)
+  [data-codex-tweaks-cbgp-quick-action]:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+:root:not(.electron-light)
+  [data-codex-tweaks-cbgp-quick-action][aria-pressed="true"] {
+  background: rgba(64, 156, 255, 0.2);
+  color: #72b7ff;
+}
+
+[data-codex-tweaks-cbgp-random-button]:is(
+    :hover,
+    :focus-within,
+    [data-expanded]
+  ):not([data-dragging]):not([data-expand-suppressed])
+  [data-codex-tweaks-cbgp-quick-actions] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate3d(-50%, 0, 0) scale(1);
+  transition-duration: 260ms, 150ms, 0s;
+  transition-timing-function:
+    cubic-bezier(0.16, 1, 0.3, 1),
+    ease-out,
+    linear;
+  transition-delay: 0ms, 0ms, 0ms;
+}
+
+[data-codex-tweaks-cbgp-random-button]:is(
+    :hover,
+    :focus-within,
+    [data-expanded]
+  ):not([data-dragging]):not([data-expand-suppressed])
+  [data-codex-tweaks-cbgp-quick-action] {
+  opacity: var(--ct-cbgp-quick-opacity);
+  transform: translate3d(0, 0, 0) scale(1);
+  transition-duration: 240ms, 130ms, 100ms, 140ms, 140ms;
+  transition-timing-function:
+    cubic-bezier(0.16, 1, 0.3, 1),
+    ease-out,
+    ease-out,
+    ease-out,
+    ease-out;
+  transition-delay:
+    var(--ct-cbgp-quick-delay),
+    var(--ct-cbgp-quick-delay),
+    0ms,
+    0ms,
+    0ms;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-codex-tweaks-cbgp-random-trigger],
+  [data-codex-tweaks-cbgp-quick-actions] {
+    background: rgba(250, 250, 252, 0.96);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  :root:not(.electron-light) [data-codex-tweaks-cbgp-random-trigger],
+  :root:not(.electron-light) [data-codex-tweaks-cbgp-quick-actions] {
+    background: rgba(35, 35, 40, 0.96);
+  }
+}
+
+@keyframes ct-cbgp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ct-cbgp-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+/* ------------------ 设置页：真实路由中的包内容 ------------------ */
+
+[data-codex-tweaks-cbgp-settings-panel] {
+  width: min(100%, 720px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 24px 28px 44px;
+  color: inherit;
+}
+
+[data-codex-tweaks-cbgp-settings-panel] * {
+  box-sizing: border-box;
+}
+
+.ct-cbgp-pane-header {
+  margin-bottom: 20px;
+}
+
+.ct-cbgp-pane-header h1 {
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.ct-cbgp-subline {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.ct-cbgp-section {
+  margin-bottom: 26px;
+}
+
+.ct-cbgp-section h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.ct-cbgp-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  background-color: rgba(128, 128, 128, 0.12);
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(128, 128, 128, 0.18);
+}
+
+.ct-cbgp-preview.ct-cbgp-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ct-cbgp-preview.ct-cbgp-empty::after {
+  content: attr(data-empty-label);
+  font-size: 13px;
+  opacity: 0.55;
+}
+
+.ct-cbgp-preview.ct-cbgp-transparent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.34);
+  background-image: conic-gradient(
+    rgba(116, 116, 124, 0.16) 0 25%,
+    rgba(255, 255, 255, 0.44) 0 50%,
+    rgba(116, 116, 124, 0.16) 0 75%,
+    rgba(255, 255, 255, 0.44) 0
+  );
+  background-size: 20px 20px;
+}
+
+.ct-cbgp-preview.ct-cbgp-transparent::after {
+  content: attr(data-empty-label);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  color: rgba(28, 28, 32, 0.84);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+:root:not(.electron-light) .ct-cbgp-preview.ct-cbgp-transparent {
+  background-color: rgba(28, 28, 34, 0.34);
+  background-image: conic-gradient(
+    rgba(255, 255, 255, 0.1) 0 25%,
+    rgba(34, 34, 40, 0.4) 0 50%,
+    rgba(255, 255, 255, 0.1) 0 75%,
+    rgba(34, 34, 40, 0.4) 0
+  );
+}
+
+:root:not(.electron-light) .ct-cbgp-preview.ct-cbgp-transparent::after {
+  background: rgba(40, 40, 46, 0.82);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ct-cbgp-current-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ct-cbgp-chip {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
+  font-weight: 500;
+}
+
+:root:not(.electron-light) .ct-cbgp-chip {
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+}
+
+.ct-cbgp-time {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.ct-cbgp-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.ct-cbgp-tool-button {
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  background: rgba(255, 255, 255, 0.8);
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+:root:not(.electron-light) .ct-cbgp-tool-button {
+  background: rgba(52, 52, 60, 0.8);
+}
+
+.ct-cbgp-tool-button:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+:root:not(.electron-light) .ct-cbgp-tool-button:hover {
+  background: rgba(72, 72, 82, 1);
+}
+
+.ct-cbgp-tool-button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.ct-cbgp-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ct-cbgp-field-label {
+  flex: 0 0 auto;
+  font-size: 13px;
+  opacity: 0.8;
+  min-width: 88px;
+}
+
+.ct-cbgp-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+  color: inherit;
+}
+
+:root:not(.electron-light) .ct-cbgp-input {
+  background: rgba(46, 46, 54, 0.9);
+}
+
+.ct-cbgp-input:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 0;
+  border-color: transparent;
+}
+
+.ct-cbgp-select-control {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  z-index: 0;
+}
+
+.ct-cbgp-select-control[data-open] {
+  z-index: 40;
+}
+
+.ct-cbgp-select-trigger {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0 11px 0 12px;
+  border: 1px solid rgba(82, 82, 92, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.62);
+  color: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 2px rgba(24, 24, 28, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 180ms ease;
+}
+
+.ct-cbgp-select-trigger:hover {
+  border-color: rgba(82, 82, 92, 0.34);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.ct-cbgp-select-trigger:focus-visible {
+  outline: none;
+  border-color: rgba(10, 106, 255, 0.72);
+  box-shadow:
+    0 0 0 3px rgba(10, 106, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.ct-cbgp-select-control[data-open] .ct-cbgp-select-trigger {
+  border-color: rgba(10, 106, 255, 0.54);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 0 0 3px rgba(10, 106, 255, 0.1),
+    0 3px 10px rgba(24, 24, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.ct-cbgp-select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ct-cbgp-select-chevron {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  opacity: 0.5;
+  transition:
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 160ms ease;
+}
+
+.ct-cbgp-select-control[data-open] .ct-cbgp-select-chevron {
+  transform: rotate(180deg);
+  opacity: 0.76;
+}
+
+.ct-cbgp-select-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  left: 0;
+  max-height: min(280px, 50vh);
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(82, 82, 92, 0.18);
+  border-radius: 12px;
+  background: rgba(248, 248, 250, 0.86);
+  box-shadow:
+    0 18px 46px rgba(18, 18, 22, 0.18),
+    0 3px 10px rgba(18, 18, 22, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(1.24);
+  -webkit-backdrop-filter: blur(24px) saturate(1.24);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate3d(0, -5px, 0) scale(0.98);
+  transform-origin: top center;
+  transition:
+    opacity 150ms ease,
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 0s linear 220ms;
+}
+
+.ct-cbgp-select-control[data-open] .ct-cbgp-select-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition-delay: 0s;
+}
+
+.ct-cbgp-select-option {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 9px 7px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 110ms ease,
+    color 110ms ease;
+}
+
+.ct-cbgp-select-option:hover,
+.ct-cbgp-select-option:focus-visible {
+  outline: none;
+  background: rgba(10, 106, 255, 0.1);
+}
+
+.ct-cbgp-select-option[aria-selected="true"] {
+  background: rgba(10, 106, 255, 0.13);
+  color: rgb(0, 83, 204);
+  font-weight: 500;
+}
+
+.ct-cbgp-select-option[aria-selected="true"]:hover,
+.ct-cbgp-select-option[aria-selected="true"]:focus-visible {
+  background: rgba(10, 106, 255, 0.18);
+}
+
+.ct-cbgp-select-check {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  opacity: 0;
+  transform: scale(0.72);
+  transition:
+    opacity 140ms ease,
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.ct-cbgp-select-option[aria-selected="true"] .ct-cbgp-select-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+:root:not(.electron-light) .ct-cbgp-select-trigger {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(42, 42, 49, 0.66);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.16);
+}
+
+:root:not(.electron-light) .ct-cbgp-select-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(50, 50, 58, 0.78);
+}
+
+:root:not(.electron-light) .ct-cbgp-select-control[data-open] .ct-cbgp-select-trigger {
+  border-color: rgba(77, 156, 255, 0.62);
+  background: rgba(52, 52, 60, 0.84);
+  box-shadow:
+    0 0 0 3px rgba(77, 156, 255, 0.13),
+    0 3px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+:root:not(.electron-light) .ct-cbgp-select-menu {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(38, 38, 45, 0.88);
+  box-shadow:
+    0 20px 52px rgba(0, 0, 0, 0.42),
+    0 3px 12px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:root:not(.electron-light) .ct-cbgp-select-option:hover,
+:root:not(.electron-light) .ct-cbgp-select-option:focus-visible {
+  background: rgba(77, 156, 255, 0.14);
+}
+
+:root:not(.electron-light) .ct-cbgp-select-option[aria-selected="true"] {
+  background: rgba(77, 156, 255, 0.18);
+  color: rgb(142, 196, 255);
+}
+
+:root:not(.electron-light) .ct-cbgp-select-option[aria-selected="true"]:hover,
+:root:not(.electron-light) .ct-cbgp-select-option[aria-selected="true"]:focus-visible {
+  background: rgba(77, 156, 255, 0.24);
+}
+
+.ct-cbgp-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.ct-cbgp-mask-controls {
+  display: grid;
+  grid-template-columns: 34px 64px minmax(96px, 1fr) 42px;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ct-cbgp-frost-controls {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) 42px;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ct-cbgp-color-input {
+  width: 34px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+:root:not(.electron-light) .ct-cbgp-color-input {
+  background: rgba(46, 46, 54, 0.8);
+}
+
+.ct-cbgp-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.ct-cbgp-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+.ct-cbgp-color-input:focus-visible,
+.ct-cbgp-range:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.ct-cbgp-color-value,
+.ct-cbgp-range-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.68;
+}
+
+.ct-cbgp-color-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ct-cbgp-range {
+  width: 100%;
+  min-width: 0;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.ct-cbgp-range:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.ct-cbgp-range-value {
+  text-align: right;
+}
+
+.ct-cbgp-file {
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ct-cbgp-note {
+  font-size: 12px;
+  line-height: 1.6;
+  opacity: 0.62;
+  margin: 4px 0 0;
+  max-width: 560px;
+}
+
+.ct-cbgp-history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+}
+
+.ct-cbgp-history-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.ct-cbgp-history-card:hover .ct-cbgp-history-thumb {
+  transform: scale(1.03);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.ct-cbgp-history-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  background-color: rgba(128, 128, 128, 0.14);
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ct-cbgp-history-label {
+  font-size: 11px;
+  opacity: 0.65;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ct-cbgp-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ct-cbgp-toggle {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(128, 128, 128, 0.34);
+  background: rgba(128, 128, 128, 0.24);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 150ms ease;
+  flex: 0 0 auto;
+}
+
+.ct-cbgp-toggle .ct-cbgp-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 150ms ease;
+}
+
+.ct-cbgp-toggle[data-on] {
+  background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb);
+  border-color: transparent;
+}
+
+.ct-cbgp-toggle[data-on] .ct-cbgp-toggle-knob {
+  transform: translateX(16px);
+}
+
+/* 减少动态效果偏好 */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-codex-tweaks-cbgp-wallpaper],
+  [data-codex-tweaks-cbgp-wallpaper]::before,
+  [data-codex-tweaks-cbgp-wallpaper]::after,
+  [data-codex-tweaks-cbgp-random-button],
+  [data-codex-tweaks-cbgp-random-trigger],
+  [data-codex-tweaks-cbgp-random-trigger] > svg,
+  .ct-cbgp-quick-action-indicator,
+  .ct-cbgp-tool-button {
+    transition: none;
+  }
+
+  [data-codex-tweaks-cbgp-quick-actions] {
+    transform: translate3d(-50%, 0, 0) scale(1);
+    transition:
+      opacity 120ms linear,
+      visibility 0s linear 120ms;
+  }
+
+  [data-codex-tweaks-cbgp-quick-action] {
+    --ct-cbgp-quick-delay: 0ms;
+    transform: translate3d(0, 0, 0) scale(1);
+    transition: opacity 120ms linear;
+  }
+
+  [data-codex-tweaks-cbgp-tooltip]::before,
+  [data-codex-tweaks-cbgp-tooltip]::after {
+    transition:
+      opacity 80ms linear,
+      visibility 0s linear 80ms;
+  }
+
+  [data-codex-tweaks-cbgp-random-button][aria-busy="true"]
+    [data-codex-tweaks-cbgp-random-trigger] > svg {
+    animation: none;
+  }
+
+  [data-codex-tweaks-cbgp-random-button][data-snapping] {
+    transition: none;
+  }
+
+  [data-codex-tweaks-cbgp-random-button][data-failed]
+    [data-codex-tweaks-cbgp-random-trigger] {
+    animation: none;
+  }
+
+  .ct-cbgp-select-trigger,
+  .ct-cbgp-select-chevron,
+  .ct-cbgp-select-menu,
+  .ct-cbgp-select-option,
+  .ct-cbgp-select-check {
+    transition: none;
+  }
+
+  .ct-cbgp-select-menu {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .ct-cbgp-select-trigger,
+  .ct-cbgp-select-menu {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .ct-cbgp-select-trigger {
+    background: rgb(248, 248, 250);
+  }
+
+  .ct-cbgp-select-menu {
+    background: rgb(248, 248, 250);
+  }
+
+  :root:not(.electron-light) .ct-cbgp-select-trigger,
+  :root:not(.electron-light) .ct-cbgp-select-menu {
+    background: rgb(38, 38, 45);
+  }
+}
+
+/* ------------------------------ 历史右键菜单 ------------------------------ */
+
+[data-codex-tweaks-cbgp-context-menu] {
+  position: fixed;
+  min-width: 160px;
+  z-index: 90;
+  padding: 5px;
+  border-radius: 10px;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+:root:not(.electron-light) [data-codex-tweaks-cbgp-context-menu] {
+  background: rgba(38, 38, 44, 0.96);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.ct-cbgp-context-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ct-cbgp-context-item:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
+}
+
+:root:not(.electron-light) .ct-cbgp-context-item:hover:not(:disabled) {
+  background: rgba(96, 165, 250, 0.2);
+  color: #93c5fd;
+}
+
+.ct-cbgp-context-item:disabled {
+  cursor: progress;
+  opacity: 0.58;
+}
+
+.ct-cbgp-context-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(128, 128, 128, 0.24);
+}
+
+.ct-cbgp-context-item-destructive {
+  color: #b42318;
+}
+
+.ct-cbgp-context-item-destructive:hover:not(:disabled) {
+  color: #991b1b;
+  background: rgba(220, 38, 38, 0.12);
+}
+
+:root:not(.electron-light) .ct-cbgp-context-item-destructive {
+  color: #fca5a5;
+}
+
+:root:not(.electron-light) .ct-cbgp-context-item-destructive:hover:not(:disabled) {
+  color: #fecaca;
+  background: rgba(248, 113, 113, 0.16);
+}
+
+.ct-cbgp-context-item:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+/* ------------------------------ 操作反馈 ------------------------------ */
+
+[data-codex-tweaks-cbgp-action-toast] {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 95;
+  max-width: min(420px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  padding: 9px 13px;
+  border: 1px solid rgba(128, 128, 128, 0.26);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #202124;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+  pointer-events: none;
+}
+
+[data-codex-tweaks-cbgp-action-toast][data-tone="error"] {
+  color: #991b1b;
+}
+
+:root:not(.electron-light) [data-codex-tweaks-cbgp-action-toast] {
+  background: rgba(38, 38, 44, 0.94);
+  color: #f4f4f5;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+:root:not(.electron-light)
+  [data-codex-tweaks-cbgp-action-toast][data-tone="error"] {
+  color: #fecaca;
+}

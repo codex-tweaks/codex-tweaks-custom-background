@@ -1,0 +1,48 @@
+{
+  "name": "ct-custom-background",
+  "version": "1.2.0",
+  "description": "为 Codex 设置透明背景、随机图片、远程图片或本地图片，并提供独立的「自定义背景」设置页面。",
+  "keywords": ["codex-tweaks-package", "codex-tweaks-theme", "codex-tweaks-node"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codex-tweaks/codex-tweaks-custom-background.git"
+  },
+  "homepage": "https://github.com/codex-tweaks/codex-tweaks-custom-background",
+  "type": "module",
+  "scripts": {
+    "test": "node --test src/*.test.js"
+  },
+  "dependencies": {
+    "@neodrag/vanilla": "2.3.1"
+  },
+  "codexTweaks": {
+    "apiVersion": 3,
+    "entrypoints": {
+      "renderer": "src/index.js",
+      "node": "src/node.js"
+    },
+    "priority": 100,
+    "packageDependencies": {},
+    "permissions": {
+      "node": {
+        "reason": "用于访问远程背景图片服务、解析最终重定向地址，并在保存历史图片时读取远程二进制内容。Node 代码会使用网络访问，依赖安装阶段也可能执行 npm 脚本。"
+      }
+    },
+    "ui": {
+      "settingsSections": {
+        "apiVersion": 1,
+        "required": false,
+        "items": [
+          {
+            "id": "custom-background",
+            "title": "自定义背景",
+            "group": "personal",
+            "icon": "personalization",
+            "after": "personalization"
+          }
+        ]
+      }
+    }
+  }
+}
