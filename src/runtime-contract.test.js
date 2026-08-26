@@ -75,6 +75,13 @@ test("uses an accessible custom listbox while retaining the native select state 
   assert.match(source, /closeOpenSettingsSelect\(\{ restoreFocus: true \}\)/);
 });
 
+test("uses a dedicated local image button without exposing stale native file status", () => {
+  assert.match(source, /fileInput\.hidden\s*=\s*true/);
+  assert.match(source, /fileButton\.setAttribute\("data-slot",\s*"file-button"\)/);
+  assert.match(source, /fileInput\.value\s*=\s*"";\s*fileInput\.click\(\)/s);
+  assert.match(source, /state\.dataUrl[\s\S]*"更换图片"[\s\S]*"选择图片"/);
+});
+
 test("excludes pet renderers and clears artifacts before starting the background runtime", () => {
   const scopeGuardIndex = source.indexOf(
     "if (isCodexPetRendererLocation(window.location.href))",
