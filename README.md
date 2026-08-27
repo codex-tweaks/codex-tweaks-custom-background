@@ -31,6 +31,10 @@
 
 运行 `npm install` 安装锁定依赖，使用 `npm test` 执行单元测试，然后在 Codex Tweaks 中重新编译并验证启用、停用和 Node 授权流程。
 
+## 致谢
+
+感谢 [LINUX DO](https://linux.do/) 社区为开发者提供交流与分享的空间。
+
 ## 许可证
 
 本项目使用 [MIT 许可证](LICENSE)。
