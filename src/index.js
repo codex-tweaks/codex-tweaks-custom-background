@@ -254,6 +254,8 @@ export function activate({ api, node, ui }) {
   let historyActionPending = false;
   let actionToastNode = null;
   let actionToastTimer = null;
+  let confirmDialogNode = null;
+  let confirmDialogReturnFocusNode = null;
   let imageJobToken = 0;
   let domObserver = null;
   let domSyncTimer = null;
@@ -1967,7 +1969,17 @@ export function activate({ api, node, ui }) {
       const historyActions = document.createElement("div");
       historyActions.className = "ct-cbgp-actions";
       historyActions.append(
-        toolButton(isChinese ? "清空历史" : "Clear history", () => clearHistory()),
+        toolButton(isChinese ? "清空历史" : "Clear history", () => {
+          openConfirmDialog({
+            title: isChinese ? "清空历史" : "Clear history",
+            message: isChinese
+              ? `确定要清空全部 ${state.history.length} 张历史背景吗？此操作无法撤销。`
+              : `Remove all ${state.history.length} history images? This cannot be undone.`,
+            confirmLabel: isChinese ? "清空" : "Clear",
+            cancelLabel: isChinese ? "取消" : "Cancel",
+            onConfirm: clearHistory,
+          });
+        }),
       );
       historySection.append(historyActions);
     }
@@ -2015,6 +2027,7 @@ export function activate({ api, node, ui }) {
       settingsPaneNode = null;
       panelOpen = false;
       closeHistoryContextMenu();
+      closeConfirmDialog();
       moveRandomButton();
     }
   }
@@ -2232,6 +2245,67 @@ export function activate({ api, node, ui }) {
     actionToastTimer = window.setTimeout(clearActionToast, ACTION_TOAST_DURATION_MS);
   }
 
+  /* ----------------------------- 确认对话框 ----------------------------- */
+
+  function openConfirmDialog({ title, message, confirmLabel, cancelLabel, onConfirm, returnFocusNode }) {
+    if (disposed) return;
+    closeConfirmDialog();
+    confirmDialogReturnFocusNode =
+      returnFocusNode ?? (document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null);
+    const backdrop = document.createElement("div");
+    backdrop.className = "ct-cbgp-confirm-backdrop";
+    backdrop.setAttribute("data-codex-tweaks-cbgp-confirm-dialog", "");
+    const dialog = document.createElement("div");
+    dialog.className = "ct-cbgp-confirm-dialog";
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "ct-cbgp-confirm-title");
+    const titleEl = document.createElement("h3");
+    titleEl.className = "ct-cbgp-confirm-title";
+    titleEl.setAttribute("id", "ct-cbgp-confirm-title");
+    titleEl.textContent = title;
+    const messageEl = document.createElement("p");
+    messageEl.className = "ct-cbgp-confirm-message";
+    messageEl.textContent = message;
+    const actions = document.createElement("div");
+    actions.className = "ct-cbgp-confirm-actions";
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.className = "ct-cbgp-confirm-button";
+    cancelButton.textContent = cancelLabel;
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "button";
+    confirmButton.className =
+      "ct-cbgp-confirm-button ct-cbgp-confirm-button-primary";
+    confirmButton.textContent = confirmLabel;
+    actions.append(cancelButton, confirmButton);
+    dialog.append(titleEl, messageEl, actions);
+    backdrop.append(dialog);
+    document.body.append(backdrop);
+    confirmDialogNode = backdrop;
+    cancelButton.addEventListener("click", () => closeConfirmDialog(true));
+    backdrop.addEventListener("pointerdown", (event) => {
+      if (event.target === backdrop) closeConfirmDialog(true);
+    });
+    confirmButton.addEventListener("click", () => {
+      closeConfirmDialog();
+      onConfirm();
+    });
+    window.requestAnimationFrame(() => cancelButton.focus());
+  }
+
+  function closeConfirmDialog(restoreFocus = false) {
+    const returnNode = confirmDialogReturnFocusNode;
+    confirmDialogNode?.remove();
+    confirmDialogNode = null;
+    confirmDialogReturnFocusNode = null;
+    if (restoreFocus && returnNode?.isConnected) {
+      window.requestAnimationFrame(() => returnNode.focus());
+    }
+  }
+
   function historyActionErrorMessage(action, error, isChinese) {
     if (error?.code === "response_too_large") {
       return isChinese
@@ -2251,7 +2325,7 @@ export function activate({ api, node, ui }) {
   function openHistoryContextMenu(event, entry) {
     event.preventDefault();
     event.stopPropagation();
-    if (historyActionPending) return;
+    if (historyActionPending || confirmDialogNode) return;
     closeHistoryContextMenu();
     const { isChinese } = getLocaleStrings();
     const menu = document.createElement("div");
@@ -2316,8 +2390,18 @@ export function activate({ api, node, ui }) {
     );
     deleteItem.classList.add("ct-cbgp-context-item-destructive");
     deleteItem.addEventListener("click", () => {
+      const returnNode = historyContextMenuTriggerNode;
       closeHistoryContextMenu();
-      deleteHistoryEntry(entry.id);
+      openConfirmDialog({
+        title: isChinese ? "删除历史背景" : "Remove from history",
+        message: isChinese
+          ? "确定要将这张背景从历史中删除吗？删除后无法恢复。"
+          : "Remove this background from history? This cannot be undone.",
+        confirmLabel: isChinese ? "删除" : "Delete",
+        cancelLabel: isChinese ? "取消" : "Cancel",
+        returnFocusNode: returnNode,
+        onConfirm: () => deleteHistoryEntry(entry.id),
+      });
     });
     menu.append(copyItem, saveItem, separator, deleteItem);
     document.body.append(menu);
@@ -2395,6 +2479,26 @@ export function activate({ api, node, ui }) {
   }
 
   function handleKeyDown(event) {
+    if (confirmDialogNode) {
+      const buttons = [...confirmDialogNode.querySelectorAll("button")];
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeConfirmDialog(true);
+      } else if (event.key === "Tab" && buttons.length) {
+        const first = buttons[0];
+        const last = buttons[buttons.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      } else if (!buttons.length) {
+        return;
+      }
+      return;
+    }
     if (openSettingsSelect && event.key === "Escape") {
       event.preventDefault();
       closeOpenSettingsSelect({ restoreFocus: true });
@@ -2466,6 +2570,7 @@ export function activate({ api, node, ui }) {
       handleRandomButtonViewportChange,
     );
     closeHistoryContextMenu();
+    closeConfirmDialog();
     clearActionToast();
     if (settingsPaneNode) detachSettingsPane(settingsPaneNode);
     closeOpenSettingsSelect();

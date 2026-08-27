@@ -1432,3 +1432,101 @@
   [data-codex-tweaks-cbgp-action-toast][data-tone="error"] {
   color: #fecaca;
 }
+
+/* ------------------------------ 确认对话框 ------------------------------ */
+
+[data-codex-tweaks-cbgp-confirm-dialog] {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(20, 20, 24, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.ct-cbgp-confirm-dialog {
+  width: min(360px, 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  background: rgba(255, 255, 255, 0.97);
+  color: #202124;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  padding: 18px 20px 16px;
+}
+
+:root:not(.electron-light) .ct-cbgp-confirm-dialog {
+  background: rgba(38, 38, 44, 0.97);
+  color: #f4f4f5;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.ct-cbgp-confirm-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ct-cbgp-confirm-message {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.82;
+}
+
+.ct-cbgp-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ct-cbgp-confirm-button {
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  background: rgba(255, 255, 255, 0.9);
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+:root:not(.electron-light) .ct-cbgp-confirm-button {
+  background: rgba(52, 52, 60, 0.9);
+}
+
+.ct-cbgp-confirm-button:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+:root:not(.electron-light) .ct-cbgp-confirm-button:hover {
+  background: rgba(72, 72, 82, 1);
+}
+
+.ct-cbgp-confirm-button-primary {
+  border-color: transparent;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.ct-cbgp-confirm-button-primary:hover {
+  background: #b91c1c;
+}
+
+:root:not(.electron-light) .ct-cbgp-confirm-button-primary {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+:root:not(.electron-light) .ct-cbgp-confirm-button-primary:hover {
+  background: #dc2626;
+}
+
+.ct-cbgp-confirm-button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}

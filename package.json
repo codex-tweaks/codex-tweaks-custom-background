@@ -1,8 +1,12 @@
 {
   "name": "ct-custom-background",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "为 Codex 设置透明背景、随机图片、远程图片或本地图片，并提供独立的「自定义背景」设置页面。",
-  "keywords": ["codex-tweaks-package", "codex-tweaks-theme", "codex-tweaks-node"],
+  "keywords": [
+    "codex-tweaks-package",
+    "codex-tweaks-theme",
+    "codex-tweaks-node"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
