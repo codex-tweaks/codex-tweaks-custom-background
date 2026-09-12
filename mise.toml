@@ -1,0 +1,14 @@
+[tools]
+node = "24.16.0"
+
+[tasks.install]
+description = "安装锁定的依赖"
+run = "npm ci"
+
+[tasks.check]
+description = "检查 JavaScript 语法"
+run = "node --check src/index.js && node --check src/node.js"
+
+[tasks.test]
+description = "运行现有逻辑测试"
+run = "npm test"

@@ -1,4 +1,5 @@
 /* Codex 自定义背景包：壁纸层、随机按钮、设置内容（全部以 data-codex-tweaks-cbgp-* 作用域） */
+/* 新版使用 data-theme；仅当该属性不存在时，才回退到 electron-light。 */
 
 /* ------------------------------ 壁纸层 ------------------------------ */
 
@@ -63,18 +64,16 @@
     saturate(1.12);
 }
 
-:root:not(.electron-light) [data-codex-tweaks-cbgp-wallpaper]::after {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-wallpaper]::after {
   background-color: rgb(
     var(--ct-cbgp-mask-dark-rgb, 20 20 24) /
     var(--ct-cbgp-mask-dark-opacity, 0.76)
   );
 }
 
-/* Codex 会在 macOS 窗口失焦时给根节点加上 electron-opaque，并把 html/body
-   恢复为不透明窗口底色。壁纸节点本身仍然存在，但会被这层底色遮住；只在
-   自定义背景启用时恢复与聚焦状态相同的透明画布。 */
-:root.electron-opaque[data-codex-tweaks-cbgp-theme],
-:root.electron-opaque[data-codex-tweaks-cbgp-theme] body {
+/* 聚焦和失焦时都保持透明画布，避免新版窗口底色盖住负层级的壁纸。 */
+:root[data-codex-tweaks-cbgp-theme],
+:root[data-codex-tweaks-cbgp-theme] body {
   background-color: transparent !important;
 }
 
@@ -82,10 +81,12 @@
    令牌。只在壁纸启用时覆盖令牌，路由或面板重建后会自然继承；输入框、
    按钮、菜单和弹窗继续使用各自的 control/elevated 令牌。 */
 :root[data-codex-tweaks-cbgp-theme] {
+  --color-surface: rgba(255, 255, 255, 0.1) !important;
   --color-background-surface: rgba(255, 255, 255, 0.1) !important;
 }
 
-:root:not(.electron-light)[data-codex-tweaks-cbgp-theme] {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme] {
+  --color-surface: rgba(20, 20, 24, 0.14) !important;
   --color-background-surface: rgba(20, 20, 24, 0.14) !important;
 }
 
@@ -115,7 +116,7 @@
   --ct-cbgp-control-frost-surface: rgba(255, 255, 255, 0.62);
 }
 
-:root:not(.electron-light)[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost] {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost] {
   --color-background-panel: rgba(34, 34, 40, 0.54) !important;
   --color-background-primary-soft: rgba(38, 38, 46, 0.64) !important;
   --color-background-primary-soft-alpha: rgba(42, 42, 50, 0.6) !important;
@@ -156,7 +157,7 @@
   background-color: rgba(255, 255, 255, 0.78) !important;
 }
 
-:root:not(.electron-light)[data-codex-tweaks-cbgp-theme]
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme]
   main
   section
   button[class~="bg-surface"][class~="rounded-2xl"][class~="hover:bg-primary-ghost-hover"]:hover {
@@ -181,7 +182,7 @@
   -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
 }
 
-:root:not(.electron-light)[data-codex-tweaks-cbgp-theme]
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme]
   [data-pip-obstacle="app-shell-floating-left-panel"] {
   background-color: rgba(20, 20, 24, 0.72);
 }
@@ -242,7 +243,7 @@
   transition: scale 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-:root:not(.electron-light) [data-codex-tweaks-cbgp-random-trigger] {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-random-trigger] {
   background: rgba(32, 32, 38, 0.52);
   color: #e6e6e6;
   border-color: rgba(255, 255, 255, 0.22);
@@ -264,10 +265,10 @@
   scale: 1.06;
 }
 
-:root:not(.electron-light)
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))
   [data-codex-tweaks-cbgp-random-button]
   [data-codex-tweaks-cbgp-random-trigger]:is(:hover, :focus-visible),
-:root:not(.electron-light)
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))
   [data-codex-tweaks-cbgp-random-button][data-expanded]
   [data-codex-tweaks-cbgp-random-trigger] {
   background: rgba(54, 54, 62, 0.72);
@@ -551,18 +552,18 @@
   scale: 1;
 }
 
-:root:not(.electron-light) [data-codex-tweaks-cbgp-quick-actions] {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-quick-actions] {
   background: rgba(34, 34, 40, 0.7);
   color: #e6e6eb;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
 }
 
-:root:not(.electron-light)
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))
   [data-codex-tweaks-cbgp-quick-action]:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.11);
 }
 
-:root:not(.electron-light)
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))
   [data-codex-tweaks-cbgp-quick-action][aria-pressed="true"] {
   background: rgba(64, 156, 255, 0.2);
   color: #72b7ff;
@@ -617,8 +618,8 @@
     -webkit-backdrop-filter: none;
   }
 
-  :root:not(.electron-light) [data-codex-tweaks-cbgp-random-trigger],
-  :root:not(.electron-light) [data-codex-tweaks-cbgp-quick-actions] {
+  :root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-random-trigger],
+  :root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-quick-actions] {
     background: rgba(35, 35, 40, 0.96);
   }
 }
@@ -642,7 +643,45 @@
   }
 }
 
-/* ------------------ 设置页：真实路由中的包内容 ------------------ */
+/* ------------------ 独立设置面板 ------------------ */
+
+[data-codex-tweaks-cbgp-settings-dialog] {
+  width: min(760px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 48px);
+  box-sizing: border-box;
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 16px;
+  background: #f6f6f6;
+  color: #202124;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+[data-codex-tweaks-cbgp-settings-dialog]::backdrop {
+  background: rgba(20, 20, 24, 0.3);
+}
+
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-settings-dialog] {
+  background: #202024;
+  color: #f4f4f5;
+}
+
+.ct-cbgp-settings-close {
+  position: sticky;
+  top: 12px;
+  z-index: 2;
+  display: block;
+  margin: 12px 16px 0 auto;
+}
+
+[data-codex-tweaks-cbgp-settings-dialog] [data-codex-tweaks-cbgp-settings-panel] {
+  box-sizing: border-box;
+  min-height: 0;
+  padding-top: 8px;
+}
 
 [data-codex-tweaks-cbgp-settings-panel] {
   width: min(100%, 720px);
@@ -654,6 +693,10 @@
 
 [data-codex-tweaks-cbgp-settings-panel] * {
   box-sizing: border-box;
+}
+
+[data-codex-tweaks-cbgp-settings-panel] [hidden] {
+  display: none !important;
 }
 
 .ct-cbgp-pane-header {
@@ -729,7 +772,7 @@
   font-weight: 500;
 }
 
-:root:not(.electron-light) .ct-cbgp-preview.ct-cbgp-transparent {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-preview.ct-cbgp-transparent {
   background-color: rgba(28, 28, 34, 0.34);
   background-image: conic-gradient(
     rgba(255, 255, 255, 0.1) 0 25%,
@@ -739,7 +782,7 @@
   );
 }
 
-:root:not(.electron-light) .ct-cbgp-preview.ct-cbgp-transparent::after {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-preview.ct-cbgp-transparent::after {
   background: rgba(40, 40, 46, 0.82);
   color: rgba(255, 255, 255, 0.9);
 }
@@ -760,7 +803,7 @@
   font-weight: 500;
 }
 
-:root:not(.electron-light) .ct-cbgp-chip {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-chip {
   background: rgba(96, 165, 250, 0.18);
   color: #93c5fd;
 }
@@ -789,7 +832,7 @@
   transition: background-color 120ms ease;
 }
 
-:root:not(.electron-light) .ct-cbgp-tool-button {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-tool-button {
   background: rgba(52, 52, 60, 0.8);
 }
 
@@ -797,7 +840,7 @@
   background: rgba(255, 255, 255, 1);
 }
 
-:root:not(.electron-light) .ct-cbgp-tool-button:hover {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-tool-button:hover {
   background: rgba(72, 72, 82, 1);
 }
 
@@ -831,7 +874,7 @@
   color: inherit;
 }
 
-:root:not(.electron-light) .ct-cbgp-input {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-input {
   background: rgba(46, 46, 54, 0.9);
 }
 
@@ -1014,7 +1057,7 @@
   transform: scale(1);
 }
 
-:root:not(.electron-light) .ct-cbgp-select-trigger {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-trigger {
   border-color: rgba(255, 255, 255, 0.13);
   background: rgba(42, 42, 49, 0.66);
   box-shadow:
@@ -1022,12 +1065,12 @@
     0 1px 2px rgba(0, 0, 0, 0.16);
 }
 
-:root:not(.electron-light) .ct-cbgp-select-trigger:hover {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-trigger:hover {
   border-color: rgba(255, 255, 255, 0.2);
   background: rgba(50, 50, 58, 0.78);
 }
 
-:root:not(.electron-light) .ct-cbgp-select-control[data-open] .ct-cbgp-select-trigger {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-control[data-open] .ct-cbgp-select-trigger {
   border-color: rgba(77, 156, 255, 0.62);
   background: rgba(52, 52, 60, 0.84);
   box-shadow:
@@ -1036,7 +1079,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-:root:not(.electron-light) .ct-cbgp-select-menu {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-menu {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(38, 38, 45, 0.88);
   box-shadow:
@@ -1045,18 +1088,18 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-:root:not(.electron-light) .ct-cbgp-select-option:hover,
-:root:not(.electron-light) .ct-cbgp-select-option:focus-visible {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-option:hover,
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-option:focus-visible {
   background: rgba(77, 156, 255, 0.14);
 }
 
-:root:not(.electron-light) .ct-cbgp-select-option[aria-selected="true"] {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-option[aria-selected="true"] {
   background: rgba(77, 156, 255, 0.18);
   color: rgb(142, 196, 255);
 }
 
-:root:not(.electron-light) .ct-cbgp-select-option[aria-selected="true"]:hover,
-:root:not(.electron-light) .ct-cbgp-select-option[aria-selected="true"]:focus-visible {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-option[aria-selected="true"]:hover,
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-option[aria-selected="true"]:focus-visible {
   background: rgba(77, 156, 255, 0.24);
 }
 
@@ -1096,7 +1139,7 @@
   cursor: pointer;
 }
 
-:root:not(.electron-light) .ct-cbgp-color-input {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-color-input {
   background: rgba(46, 46, 54, 0.8);
 }
 
@@ -1311,8 +1354,8 @@
     background: rgb(248, 248, 250);
   }
 
-  :root:not(.electron-light) .ct-cbgp-select-trigger,
-  :root:not(.electron-light) .ct-cbgp-select-menu {
+  :root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-trigger,
+  :root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-select-menu {
     background: rgb(38, 38, 45);
   }
 }
@@ -1332,7 +1375,7 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
-:root:not(.electron-light) [data-codex-tweaks-cbgp-context-menu] {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-context-menu] {
   background: rgba(38, 38, 44, 0.96);
   border-color: rgba(255, 255, 255, 0.14);
 }
@@ -1356,7 +1399,7 @@
   color: #2563eb;
 }
 
-:root:not(.electron-light) .ct-cbgp-context-item:hover:not(:disabled) {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-context-item:hover:not(:disabled) {
   background: rgba(96, 165, 250, 0.2);
   color: #93c5fd;
 }
@@ -1381,11 +1424,11 @@
   background: rgba(220, 38, 38, 0.12);
 }
 
-:root:not(.electron-light) .ct-cbgp-context-item-destructive {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-context-item-destructive {
   color: #fca5a5;
 }
 
-:root:not(.electron-light) .ct-cbgp-context-item-destructive:hover:not(:disabled) {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-context-item-destructive:hover:not(:disabled) {
   color: #fecaca;
   background: rgba(248, 113, 113, 0.16);
 }
@@ -1422,13 +1465,13 @@
   color: #991b1b;
 }
 
-:root:not(.electron-light) [data-codex-tweaks-cbgp-action-toast] {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-action-toast] {
   background: rgba(38, 38, 44, 0.94);
   color: #f4f4f5;
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-:root:not(.electron-light)
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))
   [data-codex-tweaks-cbgp-action-toast][data-tone="error"] {
   color: #fecaca;
 }
@@ -1458,7 +1501,7 @@
   padding: 18px 20px 16px;
 }
 
-:root:not(.electron-light) .ct-cbgp-confirm-dialog {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-confirm-dialog {
   background: rgba(38, 38, 44, 0.97);
   color: #f4f4f5;
   border-color: rgba(255, 255, 255, 0.14);
@@ -1495,7 +1538,7 @@
   transition: background-color 120ms ease;
 }
 
-:root:not(.electron-light) .ct-cbgp-confirm-button {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-confirm-button {
   background: rgba(52, 52, 60, 0.9);
 }
 
@@ -1503,7 +1546,7 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
-:root:not(.electron-light) .ct-cbgp-confirm-button:hover {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-confirm-button:hover {
   background: rgba(72, 72, 82, 1);
 }
 
@@ -1517,12 +1560,12 @@
   background: #b91c1c;
 }
 
-:root:not(.electron-light) .ct-cbgp-confirm-button-primary {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-confirm-button-primary {
   background: #ef4444;
   color: #ffffff;
 }
 
-:root:not(.electron-light) .ct-cbgp-confirm-button-primary:hover {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-confirm-button-primary:hover {
   background: #dc2626;
 }
 

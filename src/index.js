@@ -24,7 +24,7 @@ import {
 import { isCodexPetRendererLocation } from "./renderer-scope.js";
 
 // 把 Codex 的背景替换为可选择的透明画布或壁纸：随机来源（栗次元 t.alcy.cc）通过聊天页
-// 可拖动并吸附窗口边缘的「换一张」按钮触发；设置页中的独立「自定义背景」路由
+// 可拖动并吸附窗口边缘的「换一张」按钮触发；独立的「自定义背景」面板
 // 可查看当前背景与最近 10 张历史背景、切换背景来源（透明 / 随机 / 远程 URL /
 // 本地文件）、控制随机按钮显示。所有状态保存在 localStorage，重启后保留。
 //
@@ -46,6 +46,7 @@ const QUICK_ACTIONS_MARKER = "data-codex-tweaks-cbgp-quick-actions";
 const QUICK_ACTION_MARKER = "data-codex-tweaks-cbgp-quick-action";
 const TOOLTIP_MARKER = "data-codex-tweaks-cbgp-tooltip";
 const PANEL_MARKER = "data-codex-tweaks-cbgp-settings-panel";
+const SETTINGS_DIALOG_MARKER = "data-codex-tweaks-cbgp-settings-dialog";
 const LEGACY_SETTINGS_EMBED_MARKER = "data-codex-tweaks-cbgp-embed";
 const SETTINGS_NAV_LABEL = "自定义背景";
 const IMAGE_JOB_MARKER = "data-codex-tweaks-cbgp-loading";
@@ -100,6 +101,7 @@ const CURRENT_BACKGROUND_NODE_MARKERS = [
   WALLPAPER_MARKER,
   BUTTON_MARKER,
   PANEL_MARKER,
+  SETTINGS_DIALOG_MARKER,
   "data-codex-tweaks-cbgp-context-menu",
   "data-codex-tweaks-cbgp-action-toast",
 ];
@@ -158,7 +160,7 @@ function maskRGBTriplet(color) {
     .join(" ");
 }
 
-export function activate({ api, node, ui }) {
+export function activate({ api, node }) {
   const runtimeHost = document.documentElement;
   runtimeHost[RUNTIME_KEY]?.cleanup?.();
   runtimeHost[LEGACY_RUNTIME_KEY]?.cleanup?.();
@@ -225,9 +227,6 @@ export function activate({ api, node, ui }) {
       return node.invoke("network.request", parameters);
     },
   };
-  // 设置模块只存在于主窗口；背景与设置也都限制在主窗口。
-  const settingsSections = ui.settingsSections;
-
   let disposed = false;
   let shouldRefreshLegacyRandom = false;
   let shouldRemoveLegacyStorage = false;
@@ -245,7 +244,7 @@ export function activate({ api, node, ui }) {
   let suppressRandomButtonClick = false;
   let suppressRandomButtonClickTimer = null;
   let settingsPaneNode = null;
-  let settingsSectionRegistration = null;
+  let settingsDialogNode = null;
   let openSettingsSelect = null;
   let settingsSelectSequence = 0;
   let panelOpen = false;
@@ -895,7 +894,7 @@ export function activate({ api, node, ui }) {
 
   function syncRandomButtonTrigger({ isChinese }) {
     if (!randomButtonTriggerNode) return;
-    const randomMode = state.kind === "alcy";
+    const randomMode = state.kind === "alcy" && !isSettingsPage();
     const iconMode = randomMode ? "random" : "image";
     const triggerLabel = randomMode
       ? isChinese
@@ -977,7 +976,7 @@ export function activate({ api, node, ui }) {
     });
     updateQuickAction(settingsActionNode, {
       pressed: null,
-      disabled: !settingsSectionRegistration,
+      disabled: false,
       label: isChinese ? "打开自定义背景设置" : "Open custom background settings",
     });
   }
@@ -1026,8 +1025,44 @@ export function activate({ api, node, ui }) {
   }
 
   function openCustomBackgroundSettings() {
+    if (disposed || settingsDialogNode?.isConnected) return;
     setRandomButtonExpanded(false);
-    settingsSectionRegistration?.open();
+    const { isChinese } = getLocaleStrings();
+    const dialog = document.createElement("dialog");
+    dialog.setAttribute(SETTINGS_DIALOG_MARKER, "");
+    dialog.setAttribute("aria-label", isChinese ? SETTINGS_NAV_LABEL : "Custom background");
+    const closeButton = toolButton(isChinese ? "关闭" : "Close", closeSettingsDialog);
+    closeButton.classList.add("ct-cbgp-settings-close");
+    closeButton.autofocus = true;
+    dialog.append(closeButton);
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closeSettingsDialog();
+    });
+    dialog.addEventListener("click", (event) => {
+      if (event.target !== dialog) return;
+      const rect = dialog.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right ||
+          event.clientY < rect.top || event.clientY > rect.bottom) {
+        closeSettingsDialog();
+      }
+    });
+    settingsDialogNode = dialog;
+    document.body.append(dialog);
+    settingsPaneNode = createSettingsPane();
+    panelOpen = true;
+    dialog.append(settingsPaneNode);
+    moveRandomButton();
+    dialog.showModal();
+  }
+
+  function closeSettingsDialog() {
+    if (!settingsDialogNode) return;
+    if (settingsPaneNode) detachSettingsPane(settingsPaneNode);
+    clearActionToast();
+    settingsDialogNode.close();
+    settingsDialogNode.remove();
+    settingsDialogNode = null;
   }
 
   function createRandomButton() {
@@ -1128,7 +1163,7 @@ export function activate({ api, node, ui }) {
       }
       return;
     }
-    if (state.kind !== "alcy") {
+    if (state.kind !== "alcy" || isSettingsPage()) {
       openCustomBackgroundSettings();
       return;
     }
@@ -1276,8 +1311,11 @@ export function activate({ api, node, ui }) {
 
   function moveRandomButton() {
     if (!randomButtonNode?.isConnected) return;
-    const visible = !disposed && state.showButton && !isSettingsPage() && isChatPage();
+    // 隐藏聊天页快捷按钮后，仍可从 Codex 设置页打开背景面板。
+    const visible = !disposed && !panelOpen &&
+      (isSettingsPage() || (state.showButton && isChatPage()));
     randomButtonNode.hidden = !visible;
+    syncRandomButtonTrigger(getLocaleStrings());
     if (visible && !randomButtonDragging && randomButtonSnapTimer === null) {
       applyRandomButtonDockPosition();
     }
@@ -1302,7 +1340,7 @@ export function activate({ api, node, ui }) {
   }
 
 
-  /* --------------------- 设置页：宿主注册的独立路由 --------------------- */
+  /* --------------------- 设置面板：不依赖 Codex 私有路由 --------------------- */
 
   function getLocaleStrings() {
     const locale = document.documentElement.lang || navigator.language || "zh-CN";
@@ -1701,7 +1739,7 @@ export function activate({ api, node, ui }) {
     const header = document.createElement("header");
     header.className = "ct-cbgp-pane-header";
     const title = document.createElement("h1");
-    title.textContent = SETTINGS_NAV_LABEL;
+    title.textContent = isChinese ? SETTINGS_NAV_LABEL : "Custom background";
     header.append(title);
     const subline = document.createElement("div");
     subline.className = "ct-cbgp-subline";
@@ -1996,6 +2034,7 @@ export function activate({ api, node, ui }) {
     toggle.className = "ct-cbgp-toggle";
     toggle.setAttribute("role", "switch");
     toggle.setAttribute("aria-checked", String(state.showButton));
+    toggle.setAttribute("aria-label", toggleLabel.textContent);
     toggle.setAttribute("data-slot", "show-button-toggle");
     toggle.toggleAttribute("data-on", state.showButton);
     const toggleKnob = document.createElement("span");
@@ -2030,19 +2069,6 @@ export function activate({ api, node, ui }) {
       closeConfirmDialog();
       moveRandomButton();
     }
-  }
-
-  function mountSettingsPane(container) {
-    if (disposed || !(container instanceof Element)) {
-      throw new Error("自定义背景设置页面无法挂载");
-    }
-    if (settingsPaneNode) detachSettingsPane(settingsPaneNode);
-    const pane = createSettingsPane();
-    settingsPaneNode = pane;
-    panelOpen = true;
-    container.append(pane);
-    moveRandomButton();
-    return () => detachSettingsPane(pane);
   }
 
   function historyEntryImageSource(entry) {
@@ -2240,7 +2266,7 @@ export function activate({ api, node, ui }) {
     toast.setAttribute("role", tone === "error" ? "alert" : "status");
     toast.setAttribute("aria-live", tone === "error" ? "assertive" : "polite");
     toast.textContent = message;
-    document.body.append(toast);
+    (settingsDialogNode ?? document.body).append(toast);
     actionToastNode = toast;
     actionToastTimer = window.setTimeout(clearActionToast, ACTION_TOAST_DURATION_MS);
   }
@@ -2283,7 +2309,7 @@ export function activate({ api, node, ui }) {
     actions.append(cancelButton, confirmButton);
     dialog.append(titleEl, messageEl, actions);
     backdrop.append(dialog);
-    document.body.append(backdrop);
+    (settingsDialogNode ?? document.body).append(backdrop);
     confirmDialogNode = backdrop;
     cancelButton.addEventListener("click", () => closeConfirmDialog(true));
     backdrop.addEventListener("pointerdown", (event) => {
@@ -2404,7 +2430,7 @@ export function activate({ api, node, ui }) {
       });
     });
     menu.append(copyItem, saveItem, separator, deleteItem);
-    document.body.append(menu);
+    (settingsDialogNode ?? document.body).append(menu);
     const rect = menu.getBoundingClientRect();
     const trigger = event.currentTarget instanceof HTMLElement
       ? event.currentTarget
@@ -2572,9 +2598,8 @@ export function activate({ api, node, ui }) {
     closeHistoryContextMenu();
     closeConfirmDialog();
     clearActionToast();
-    if (settingsPaneNode) detachSettingsPane(settingsPaneNode);
+    closeSettingsDialog();
     closeOpenSettingsSelect();
-    settingsSectionRegistration = null;
     removeRandomButton();
     removeWallpaper();
     document.documentElement.removeAttribute(IMAGE_JOB_MARKER);
@@ -2584,10 +2609,8 @@ export function activate({ api, node, ui }) {
   }
 
   api.registerCleanup(cleanup);
-  settingsSectionRegistration = settingsSections?.register({
-    id: "custom-background",
-    mount: mountSettingsPane,
-  }) ?? null;
+  // 新版 Codex 的私有设置模块已变化；声明 ui.settingsSections 会让旧宿主
+  // 在适配失败后反复卸载所有包。设置面板由本包持有，避免依赖这条注入链。
   domObserver = new MutationObserver(scheduleDOMSync);
   domObserver.observe(document.body, { childList: true, subtree: true });
 
