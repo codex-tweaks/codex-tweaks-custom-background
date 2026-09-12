@@ -160,7 +160,7 @@ function maskRGBTriplet(color) {
     .join(" ");
 }
 
-export function activate({ api, node }) {
+export function activate({ api, node, ui }) {
   const runtimeHost = document.documentElement;
   runtimeHost[RUNTIME_KEY]?.cleanup?.();
   runtimeHost[LEGACY_RUNTIME_KEY]?.cleanup?.();
@@ -245,6 +245,7 @@ export function activate({ api, node }) {
   let suppressRandomButtonClickTimer = null;
   let settingsPaneNode = null;
   let settingsDialogNode = null;
+  let settingsSectionRegistration = null;
   let openSettingsSelect = null;
   let settingsSelectSequence = 0;
   let panelOpen = false;
@@ -1025,8 +1026,13 @@ export function activate({ api, node }) {
   }
 
   function openCustomBackgroundSettings() {
-    if (disposed || settingsDialogNode?.isConnected) return;
+    if (disposed) return;
     setRandomButtonExpanded(false);
+    if (settingsSectionRegistration) {
+      settingsSectionRegistration.open();
+      return;
+    }
+    if (settingsDialogNode?.isConnected) return;
     const { isChinese } = getLocaleStrings();
     const dialog = document.createElement("dialog");
     dialog.setAttribute(SETTINGS_DIALOG_MARKER, "");
@@ -2071,6 +2077,19 @@ export function activate({ api, node }) {
     }
   }
 
+  function mountSettingsPane(container) {
+    if (disposed || !(container instanceof Element)) {
+      throw new Error("自定义背景设置页面无法挂载");
+    }
+    if (settingsPaneNode) detachSettingsPane(settingsPaneNode);
+    const pane = createSettingsPane();
+    settingsPaneNode = pane;
+    panelOpen = true;
+    container.append(pane);
+    moveRandomButton();
+    return () => detachSettingsPane(pane);
+  }
+
   function historyEntryImageSource(entry) {
     return entry?.kind === "local" ? entry.dataUrl : entry?.url;
   }
@@ -2609,8 +2628,10 @@ export function activate({ api, node }) {
   }
 
   api.registerCleanup(cleanup);
-  // 新版 Codex 的私有设置模块已变化；声明 ui.settingsSections 会让旧宿主
-  // 在适配失败后反复卸载所有包。设置面板由本包持有，避免依赖这条注入链。
+  settingsSectionRegistration = ui?.settingsSections?.register({
+    id: "custom-background",
+    mount: mountSettingsPane,
+  }) ?? null;
   domObserver = new MutationObserver(scheduleDOMSync);
   domObserver.observe(document.body, { childList: true, subtree: true });
 
