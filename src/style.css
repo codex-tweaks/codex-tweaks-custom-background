@@ -79,13 +79,19 @@
 
 /* Codex 的主内容、设置页、侧边聊天及其顶/底渐变都消费同一个语义表面
    令牌。只在壁纸启用时覆盖令牌，路由或面板重建后会自然继承；输入框、
-   按钮、菜单和弹窗继续使用各自的 control/elevated 令牌。 */
-:root[data-codex-tweaks-cbgp-theme] {
+   按钮、菜单和弹窗继续使用各自的 control/elevated 令牌。
+
+   新版 Codex 会在会话内容内部重新声明 data-theme，局部令牌因此又回到不透明
+   底色，代码块的 sticky 操作栏恰好消费它，会显成一条突兀的白带。覆盖同时
+   命中主题根与嵌套主题节点，让这些表面继续与壁纸保持一致。 */
+:root[data-codex-tweaks-cbgp-theme],
+:root[data-codex-tweaks-cbgp-theme] [data-theme] {
   --color-surface: rgba(255, 255, 255, 0.1) !important;
   --color-background-surface: rgba(255, 255, 255, 0.1) !important;
 }
 
-:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme] {
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme],
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme] [data-theme] {
   --color-surface: rgba(20, 20, 24, 0.14) !important;
   --color-background-surface: rgba(20, 20, 24, 0.14) !important;
 }
@@ -146,6 +152,17 @@
 :root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
   [class~="bg-primary-soft-alpha"]:not(:hover):not([data-state="open"]) {
   background-color: var(--ct-cbgp-control-frost-surface) !important;
+}
+
+/* 输入框上方的额度/提示条（偶发出现的 aside 横幅）直接消费 surface 令牌，
+   令牌改为半透明后它就成了完全没有材质的空洞。它和输入框同属一个 composer
+   控件族，这里补回与控件磨砂一致的实体材质，圆角与描边仍由宿主负责。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-codex-composer-root]
+  aside[class~="bg-surface"] {
+  background-color: var(--ct-cbgp-control-frost-surface) !important;
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
 }
 
 /* 首页建议卡片原本把 ghost hover 当作叠加色使用；基础表面透明后需单独
