@@ -28,8 +28,8 @@ import { isCodexPetRendererLocation } from "./renderer-scope.js";
 // 可查看当前背景与最近 10 张历史背景、切换背景来源（透明 / 随机 / 远程 URL /
 // 本地文件）、控制随机按钮显示。所有状态保存在 localStorage，重启后保留。
 //
-// 随机原理：https://t.alcy.cc/pc/ 会 302 到一张确定的最终图片
-// （https://tc.alcy.cc/tc/<日期>/<hash>.webp），保存「最终图片地址」即可
+// 随机原理：https://t.alcy.cc/pc 会跳转到一张确定的最终图片
+// （t.alcy.cc/pic/pc/ 或旧版 tc.alcy.cc），保存「最终图片地址」即可
 // 跨重启保持同一张。最终地址由已授权的包级 Node 后端解析，不受页面
 // CSP 限制；只有取得并验证最终地址后才会替换当前背景和写入历史。
 
@@ -119,9 +119,13 @@ const RANDOM_PROVIDERS = new Map([
     {
       id: "alcy-pc",
       label: "栗次元（t.alcy.cc）",
-      url: "https://t.alcy.cc/pc/",
-      jsonUrl: "https://t.alcy.cc/json/?pc=1",
+      url: "https://t.alcy.cc/pc",
+      jsonUrl: "https://t.alcy.cc/json?pc=1",
       imageOrigins: ["https://tc.alcy.cc"],
+      // 新版服务把静态图片放在 API 同域名下，只接受固定图片路径。
+      imagePathPatterns: {
+        "https://t.alcy.cc": /^\/pic\/pc\/[^/]+\.(?:webp|png|jpe?g|avif)$/i,
+      },
     },
   ],
 ]);
@@ -131,10 +135,11 @@ function isResolvedRandomImageUrl(value, provider = null) {
   if (typeof value !== "string" || !value.trim()) return false;
   try {
     const parsed = new URL(value);
-    if (parsed.protocol !== "https:") return false;
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password) return false;
     const providers = provider ? [provider] : [...RANDOM_PROVIDERS.values()];
     return providers.some((candidate) =>
-      candidate.imageOrigins?.includes(parsed.origin),
+      candidate.imageOrigins?.includes(parsed.origin) ||
+      candidate.imagePathPatterns?.[parsed.origin]?.test(parsed.pathname),
     );
   } catch {
     return false;
