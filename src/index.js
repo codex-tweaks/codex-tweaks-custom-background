@@ -1564,6 +1564,10 @@ export function activate({ api, node, ui }) {
     return root;
   }
 
+  function updateRangeFill(range) {
+    range.style.setProperty("--ct-cbgp-range-fill", `${range.value}%`);
+  }
+
   function createMaskControlRow(theme, isChinese, preview, backgroundUrl) {
     const isLight = theme === "light";
     const colorKey = isLight ? "maskLightColor" : "maskDarkColor";
@@ -1600,6 +1604,7 @@ export function activate({ api, node, ui }) {
     range.max = "100";
     range.step = "1";
     range.value = String(Math.round(state[opacityKey] * 100));
+    updateRangeFill(range);
     range.setAttribute("data-slot", `mask-${theme}-opacity`);
     range.setAttribute(
       "aria-label",
@@ -1620,6 +1625,7 @@ export function activate({ api, node, ui }) {
       applyMaskSetting();
     });
     range.addEventListener("input", () => {
+      updateRangeFill(range);
       state[opacityKey] = normalizeMaskOpacity(Number(range.value) / 100, state[opacityKey]);
       value.textContent = `${Math.round(state[opacityKey] * 100)}%`;
       applyMaskSetting();
@@ -1646,6 +1652,7 @@ export function activate({ api, node, ui }) {
     range.max = "100";
     range.step = "1";
     range.value = String(Math.round(strength * 100));
+    updateRangeFill(range);
     range.disabled = !enabled;
     range.setAttribute("data-slot", `${slotPrefix}-strength`);
     range.setAttribute("aria-label", strengthLabel);
@@ -1677,6 +1684,7 @@ export function activate({ api, node, ui }) {
     const controls = document.createElement("div");
     controls.className = "ct-cbgp-frost-controls";
     range.addEventListener("input", () => {
+      updateRangeFill(range);
       const nextStrength = normalizeMaskOpacity(Number(range.value) / 100, strength);
       rangeValue.textContent = `${Math.round(nextStrength * 100)}%`;
       onStrengthChange(nextStrength);
