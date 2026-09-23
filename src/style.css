@@ -1187,10 +1187,33 @@
 }
 
 .ct-cbgp-range {
+  appearance: none;
   width: 100%;
   min-width: 0;
+  height: 16px;
+  background: transparent;
   accent-color: #3b82f6;
   cursor: pointer;
+}
+
+.ct-cbgp-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #3b82f6 var(--ct-cbgp-range-fill, 0%),
+    rgba(128, 128, 128, 0.3) var(--ct-cbgp-range-fill, 0%)
+  ) !important;
+}
+
+.ct-cbgp-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  background: #3b82f6;
 }
 
 .ct-cbgp-range:disabled {
