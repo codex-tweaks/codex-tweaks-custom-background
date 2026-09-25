@@ -27,7 +27,7 @@
 - Codex Tweaks API：v3
 - 已测试平台：macOS
 - 兼容 `data-theme` 与旧版 `electron-light` 主题标记
-- 设置页通过 `ui.settingsSections@1` 挂载，需要已适配当前 Codex 的 Codex Tweaks；适配不可用时，快捷按钮提供备用面板，背景继续生效
+- 设置页通过 `ui.settingsSections@1` 挂载；搭配 Codex Tweaks v3.5.8 或更新版本可在当前 Codex 设置中打开“自定义背景”。适配不可用时，快捷按钮提供备用面板，背景继续生效
 - 已知限制：依赖 Codex 当前页面结构；随机图片功能依赖第三方图片服务可用性
 
 ## 开发
