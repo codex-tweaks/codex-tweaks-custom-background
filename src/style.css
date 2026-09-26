@@ -77,6 +77,14 @@
   background-color: transparent !important;
 }
 
+/* 新版桌面壳在窗口框架与工作区分别绘制 page surface；这些叠加底色
+   会遮住壁纸。只清除壳层，保留菜单、卡片和输入框的原生表面令牌。 */
+:root[data-codex-tweaks-cbgp-theme] [data-app-shell-page-surface="true"],
+:root[data-codex-tweaks-cbgp-theme] [data-app-shell-frame][data-app-shell-workspace-tab-chrome],
+:root[data-codex-tweaks-cbgp-theme] .app-shell-left-panel:not([data-app-shell-left-panel-appearance="content-surface"]) {
+  background-color: transparent !important;
+}
+
 /* Codex 的主内容、设置页、侧边聊天及其顶/底渐变都消费同一个语义表面
    令牌。只在壁纸启用时覆盖令牌，路由或面板重建后会自然继承；输入框、
    按钮、菜单和弹窗继续使用各自的 control/elevated 令牌。

@@ -1,6 +1,6 @@
 {
   "name": "ct-custom-background",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "为 Codex 设置透明背景、随机图片、远程图片或本地图片，并在 Codex 设置中提供「自定义背景」页面。",
   "keywords": [
     "codex-tweaks-package",
