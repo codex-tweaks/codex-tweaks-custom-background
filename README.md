@@ -27,12 +27,13 @@
 - Codex Tweaks API：v3
 - 已测试平台：macOS
 - 兼容 `data-theme` 与旧版 `electron-light` 主题标记
-- 设置页通过 `ui.settingsSections@1` 挂载；搭配 Codex Tweaks v3.5.8 或更新版本可在当前 Codex 设置中打开“自定义背景”。适配不可用时，快捷按钮提供备用面板，背景继续生效
+- 设置页通过 `ui.settingsSections@1` 挂载；搭配 Codex Tweaks v3.5.9 或更新版本可在当前 Codex 设置中打开“自定义背景”。适配不可用时，快捷按钮提示更新宿主，已有背景继续生效
+- 输入框、侧栏、窗口边框和固定工具面板使用半透明磨砂；聊天记录中的卡片保留半透明底色，减少长会话滚动时的重复模糊开销
 - 已知限制：依赖 Codex 当前页面结构；随机图片功能依赖第三方图片服务可用性
 
 ## 开发
 
-运行 `mise run install` 安装锁定依赖，使用 `mise run check` 检查语法、`mise run test` 运行现有逻辑测试，然后在 Codex Tweaks 中重新编译并验证主题切换、设置面板、启用、停用和 Node 授权流程。界面效果通过真实页面验证。
+运行 `mise run install` 安装锁定依赖，使用 `mise run check` 检查语法、`mise run test` 运行现有逻辑测试。开启 Codex Tweaks 开发者模式后，源码变化会自动编译；验证主题切换、设置面板、启用、停用和 Node 授权流程时使用真实页面。
 
 ## 致谢
 
