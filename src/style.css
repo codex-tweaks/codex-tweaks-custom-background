@@ -908,15 +908,19 @@
 
 /* ------------------ 设置页内容 ------------------ */
 
-/* 原生布局选择器在首帧生效，不等待 DOM observer 标记，避免切页闪白。 */
+/* 设置容器通过原生直接子层识别，首帧生效且不依赖 DOM observer。
+   不用 :has(> .scrollbar-stable) 作后代控件的祖先条件：聊天切页时该
+   关系选择器也会扩大样式失效范围，造成额外的整页样式重算。 */
 :root[data-codex-tweaks-cbgp-theme]
-  [data-app-shell-focus-area="main"] [class~="electron:bg-surface"]:has(> .scrollbar-stable) {
+  [data-app-shell-focus-area="main"] > .relative.isolate
+  > [class~="electron:bg-surface"][class~="electron:overflow-hidden"][class~="windows:rounded-tl-lg"] {
   background-color: transparent !important;
 }
 
 /* 设置页固定搜索栏去掉实体底板与白色渐变，搜索控件保留磨砂。 */
 :root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
-  [data-app-shell-focus-area="main"] [class~="electron:bg-surface"]:has(> .scrollbar-stable)
+  [data-app-shell-focus-area="main"] > .relative.isolate
+  > [class~="electron:bg-surface"][class~="electron:overflow-hidden"][class~="windows:rounded-tl-lg"]
   :is([class~="bg-surface"], [class~="bg-page-search"], th):where(:not([role="dialog"], [role="dialog"] *, dialog, dialog *)) {
   background-color: var(--ct-cbgp-control-frost-surface) !important;
   backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
@@ -924,7 +928,8 @@
 }
 
 :root[data-codex-tweaks-cbgp-theme]
-  [data-app-shell-focus-area="main"] [class~="electron:bg-surface"]:has(> .scrollbar-stable)
+  [data-app-shell-focus-area="main"] > .relative.isolate
+  > [class~="electron:bg-surface"][class~="electron:overflow-hidden"][class~="windows:rounded-tl-lg"]
   [class~="sticky"][class~="bg-surface"] {
   background-color: transparent !important;
   backdrop-filter: none !important;
@@ -932,7 +937,8 @@
 }
 
 :root[data-codex-tweaks-cbgp-theme]
-  [data-app-shell-focus-area="main"] [class~="electron:bg-surface"]:has(> .scrollbar-stable)
+  [data-app-shell-focus-area="main"] > .relative.isolate
+  > [class~="electron:bg-surface"][class~="electron:overflow-hidden"][class~="windows:rounded-tl-lg"]
   [class~="after:from-surface"]::after {
   background-image: none !important;
 }
