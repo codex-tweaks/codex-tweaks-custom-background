@@ -36,6 +36,7 @@ import { isCodexPetRendererLocation } from "./renderer-scope.js";
 const RUNTIME_KEY = Symbol.for("codex-tweaks.codex-custom-background.runtime");
 const LEGACY_RUNTIME_KEY = Symbol.for("codex-tweaks.codex-random-background.runtime");
 const WALLPAPER_MARKER = "data-codex-tweaks-cbgp-wallpaper";
+const WINDOW_FROST_MARKER = "data-codex-tweaks-cbgp-window-frost";
 const THEME_MARKER = "data-codex-tweaks-cbgp-theme";
 const FROST_MARKER = "data-codex-tweaks-cbgp-frost";
 const BACKGROUND_FROST_MARKER = "data-codex-tweaks-cbgp-background-frost";
@@ -46,7 +47,6 @@ const QUICK_ACTIONS_MARKER = "data-codex-tweaks-cbgp-quick-actions";
 const QUICK_ACTION_MARKER = "data-codex-tweaks-cbgp-quick-action";
 const TOOLTIP_MARKER = "data-codex-tweaks-cbgp-tooltip";
 const PANEL_MARKER = "data-codex-tweaks-cbgp-settings-panel";
-const SETTINGS_DIALOG_MARKER = "data-codex-tweaks-cbgp-settings-dialog";
 const LEGACY_SETTINGS_EMBED_MARKER = "data-codex-tweaks-cbgp-embed";
 const SETTINGS_NAV_LABEL = "自定义背景";
 const IMAGE_JOB_MARKER = "data-codex-tweaks-cbgp-loading";
@@ -99,9 +99,10 @@ const LEGACY_RANDOM_BACKGROUND_ROOT_MARKERS = [
 ];
 const CURRENT_BACKGROUND_NODE_MARKERS = [
   WALLPAPER_MARKER,
+  WINDOW_FROST_MARKER,
   BUTTON_MARKER,
   PANEL_MARKER,
-  SETTINGS_DIALOG_MARKER,
+  "data-codex-tweaks-cbgp-settings-dialog",
   "data-codex-tweaks-cbgp-context-menu",
   "data-codex-tweaks-cbgp-action-toast",
 ];
@@ -237,6 +238,9 @@ export function activate({ api, node, ui }) {
   let shouldRemoveLegacyStorage = false;
   let state = loadState();
   let wallpaperNode = null;
+  let windowFrostNode = null;
+  let windowFrostSurface = null;
+  let windowFrostObserver = null;
   let randomButtonNode = null;
   let randomButtonTriggerNode = null;
   let backgroundToggleNode = null;
@@ -249,7 +253,6 @@ export function activate({ api, node, ui }) {
   let suppressRandomButtonClick = false;
   let suppressRandomButtonClickTimer = null;
   let settingsPaneNode = null;
-  let settingsDialogNode = null;
   let settingsSectionRegistration = null;
   let openSettingsSelect = null;
   let settingsSelectSequence = 0;
@@ -507,6 +510,34 @@ export function activate({ api, node, ui }) {
     return node;
   }
 
+  function syncWindowFrost() {
+    if (disposed || !wallpaperNode?.isConnected) return;
+    if (!windowFrostNode?.isConnected) {
+      windowFrostNode = document.createElement("div");
+      windowFrostNode.setAttribute(WINDOW_FROST_MARKER, "");
+      windowFrostNode.setAttribute("aria-hidden", "true");
+      wallpaperNode.after(windowFrostNode);
+    }
+    const surface = getActivePageRoot().querySelector('[data-app-shell-main-surface="default"]');
+    if (surface !== windowFrostSurface) {
+      windowFrostObserver?.disconnect();
+      windowFrostSurface = surface;
+      if (surface) {
+        windowFrostObserver ??= new ResizeObserver(syncWindowFrost);
+        windowFrostObserver.observe(surface);
+      }
+    }
+    windowFrostNode.hidden = !surface;
+    if (!surface) return;
+    // 一个独立的底层磨砂面覆盖侧栏、标题栏和外圈，中间工作区挖空。
+    // 不把滤镜加在应用祖先上，避免再次截断输入框的 backdrop 采样。
+    const { left, top, right, bottom } = surface.getBoundingClientRect();
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const clip = `polygon(evenodd, 0px 0px, ${width}px 0px, ${width}px ${height}px, 0px ${height}px, 0px 0px, ${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px, ${left}px ${top}px, 0px 0px)`;
+    if (windowFrostNode.style.clipPath !== clip) windowFrostNode.style.clipPath = clip;
+  }
+
   function applyWallpaper() {
     if (disposed) return;
     const transparent = isTransparentBackgroundActive(
@@ -535,6 +566,7 @@ export function activate({ api, node, ui }) {
     node.hidden = false;
     runtimeHost.setAttribute(THEME_MARKER, "");
     applyFrostAppearance();
+    syncWindowFrost();
     syncRandomButtonControls();
   }
 
@@ -544,6 +576,11 @@ export function activate({ api, node, ui }) {
     removeFrostAppearance();
     wallpaperNode?.remove();
     wallpaperNode = null;
+    windowFrostObserver?.disconnect();
+    windowFrostObserver = null;
+    windowFrostSurface = null;
+    windowFrostNode?.remove();
+    windowFrostNode = null;
   }
 
   /* ---------------------------- 随机与固定来源 ---------------------------- */
@@ -832,8 +869,12 @@ export function activate({ api, node, ui }) {
 
   /* ----------------------------- 随机按钮 -------------------------------- */
 
+  function getActivePageRoot() {
+    return document.querySelector('[data-app-shell-active-page="true"]') ?? document;
+  }
+
   function isSettingsPage() {
-    return Boolean(document.querySelector("button[data-settings-panel-slug]"));
+    return Boolean(getActivePageRoot().querySelector("button[data-settings-panel-slug]"));
   }
 
   function isChatPage() {
@@ -989,7 +1030,9 @@ export function activate({ api, node, ui }) {
 
   function syncRandomButtonPlacement({ x, y } = {}) {
     if (!randomButtonNode?.isConnected) return;
-    const rect = randomButtonNode.getBoundingClientRect();
+    const rect = Number.isFinite(x) && Number.isFinite(y)
+      ? null
+      : randomButtonNode.getBoundingClientRect();
     const buttonX = Number.isFinite(x) ? x : rect.left;
     const buttonY = Number.isFinite(y) ? y : rect.top;
     const quickActions = randomButtonNode.querySelector(`[${QUICK_ACTIONS_MARKER}]`);
@@ -1030,50 +1073,30 @@ export function activate({ api, node, ui }) {
     refreshSettingsPaneIfOpen();
   }
 
+  function releaseNativeSettingsSection() {
+    const registration = settingsSectionRegistration;
+    settingsSectionRegistration = null;
+    try {
+      registration?.unregister?.();
+    } catch (error) {
+      console.warn("自定义背景原生设置入口无法注销", error);
+    }
+  }
+
   function openCustomBackgroundSettings() {
     if (disposed) return;
     setRandomButtonExpanded(false);
-    if (settingsSectionRegistration) {
+    if (panelOpen && settingsPaneNode?.isConnected) return;
+    try {
+      if (!settingsSectionRegistration) throw new Error("设置扩展不可用");
       settingsSectionRegistration.open();
-      return;
+    } catch (error) {
+      const { isChinese } = getLocaleStrings();
+      showActionToast(isChinese
+        ? "无法打开自定义背景设置，请更新 Codex Tweaks 后重试"
+        : "Update Codex Tweaks to open Custom background settings.", "error");
+      console.warn("自定义背景原生设置入口不可用", error);
     }
-    if (settingsDialogNode?.isConnected) return;
-    const { isChinese } = getLocaleStrings();
-    const dialog = document.createElement("dialog");
-    dialog.setAttribute(SETTINGS_DIALOG_MARKER, "");
-    dialog.setAttribute("aria-label", isChinese ? SETTINGS_NAV_LABEL : "Custom background");
-    const closeButton = toolButton(isChinese ? "关闭" : "Close", closeSettingsDialog);
-    closeButton.classList.add("ct-cbgp-settings-close");
-    closeButton.autofocus = true;
-    dialog.append(closeButton);
-    dialog.addEventListener("cancel", (event) => {
-      event.preventDefault();
-      closeSettingsDialog();
-    });
-    dialog.addEventListener("click", (event) => {
-      if (event.target !== dialog) return;
-      const rect = dialog.getBoundingClientRect();
-      if (event.clientX < rect.left || event.clientX > rect.right ||
-          event.clientY < rect.top || event.clientY > rect.bottom) {
-        closeSettingsDialog();
-      }
-    });
-    settingsDialogNode = dialog;
-    document.body.append(dialog);
-    settingsPaneNode = createSettingsPane();
-    panelOpen = true;
-    dialog.append(settingsPaneNode);
-    moveRandomButton();
-    dialog.showModal();
-  }
-
-  function closeSettingsDialog() {
-    if (!settingsDialogNode) return;
-    if (settingsPaneNode) detachSettingsPane(settingsPaneNode);
-    clearActionToast();
-    settingsDialogNode.close();
-    settingsDialogNode.remove();
-    settingsDialogNode = null;
   }
 
   function createRandomButton() {
@@ -1317,17 +1340,20 @@ export function activate({ api, node, ui }) {
     randomButtonResizeFrame = window.requestAnimationFrame(() => {
       randomButtonResizeFrame = null;
       applyRandomButtonDockPosition();
+      syncWindowFrost();
     });
   }
 
   function moveRandomButton() {
     if (!randomButtonNode?.isConnected) return;
+    const wasHidden = randomButtonNode.hidden;
     // 隐藏聊天页快捷按钮后，仍可从 Codex 设置页打开背景面板。
     const visible = !disposed && !panelOpen &&
       (isSettingsPage() || (state.showButton && isChatPage()));
     randomButtonNode.hidden = !visible;
     syncRandomButtonTrigger(getLocaleStrings());
-    if (visible && !randomButtonDragging && randomButtonSnapTimer === null) {
+    // 页内内容更新不改变固定按钮的位置；只在重新显示或窗口 resize 时定位。
+    if (visible && wasHidden && !randomButtonDragging && randomButtonSnapTimer === null) {
       applyRandomButtonDockPosition();
     }
   }
@@ -1565,7 +1591,10 @@ export function activate({ api, node, ui }) {
   }
 
   function updateRangeFill(range) {
-    range.style.setProperty("--ct-cbgp-range-fill", `${range.value}%`);
+    const min = Number(range.min) || 0;
+    const max = Number(range.max) || 100;
+    const progress = max > min ? (Number(range.value) - min) / (max - min) : 0;
+    range.style.setProperty("--ct-cbgp-range-progress", String(progress));
   }
 
   function createMaskControlRow(theme, isChinese, preview, backgroundUrl) {
@@ -2298,7 +2327,7 @@ export function activate({ api, node, ui }) {
     toast.setAttribute("role", tone === "error" ? "alert" : "status");
     toast.setAttribute("aria-live", tone === "error" ? "assertive" : "polite");
     toast.textContent = message;
-    (settingsDialogNode ?? document.body).append(toast);
+    document.body.append(toast);
     actionToastNode = toast;
     actionToastTimer = window.setTimeout(clearActionToast, ACTION_TOAST_DURATION_MS);
   }
@@ -2341,7 +2370,7 @@ export function activate({ api, node, ui }) {
     actions.append(cancelButton, confirmButton);
     dialog.append(titleEl, messageEl, actions);
     backdrop.append(dialog);
-    (settingsDialogNode ?? document.body).append(backdrop);
+    document.body.append(backdrop);
     confirmDialogNode = backdrop;
     cancelButton.addEventListener("click", () => closeConfirmDialog(true));
     backdrop.addEventListener("pointerdown", (event) => {
@@ -2462,7 +2491,7 @@ export function activate({ api, node, ui }) {
       });
     });
     menu.append(copyItem, saveItem, separator, deleteItem);
-    (settingsDialogNode ?? document.body).append(menu);
+    document.body.append(menu);
     const rect = menu.getBoundingClientRect();
     const trigger = event.currentTarget instanceof HTMLElement
       ? event.currentTarget
@@ -2592,15 +2621,14 @@ export function activate({ api, node, ui }) {
 
   function syncDOM() {
     if (disposed) return;
-    removeLegacySettingsEmbed();
     if (!wallpaperNode?.isConnected) applyWallpaper();
+    syncWindowFrost();
     ensureRandomButton();
     moveRandomButton();
   }
 
   function scheduleDOMSync() {
-    if (disposed) return;
-    if (domSyncTimer !== null) window.clearTimeout(domSyncTimer);
+    if (disposed || domSyncTimer !== null) return;
     domSyncTimer = window.setTimeout(() => {
       domSyncTimer = null;
       syncDOM();
@@ -2630,7 +2658,7 @@ export function activate({ api, node, ui }) {
     closeHistoryContextMenu();
     closeConfirmDialog();
     clearActionToast();
-    closeSettingsDialog();
+    releaseNativeSettingsSection();
     closeOpenSettingsSelect();
     removeRandomButton();
     removeWallpaper();
@@ -2641,12 +2669,25 @@ export function activate({ api, node, ui }) {
   }
 
   api.registerCleanup(cleanup);
-  settingsSectionRegistration = ui?.settingsSections?.register({
-    id: "custom-background",
-    mount: mountSettingsPane,
-  }) ?? null;
+  try {
+    // 不兼容的原生适配器会每 500ms 遍历 DOM/React 树寻找旧设置路由。
+    // 它已明确报告不可用时跳过注册，避免启动无休止的路由发现。
+    if (globalThis.__CODEX_TWEAKS_SETTINGS_SECTIONS__?.ready !== false) {
+      settingsSectionRegistration = ui?.settingsSections?.register({
+        id: "custom-background",
+        mount: mountSettingsPane,
+      }) ?? null;
+    }
+  } catch (error) {
+    console.warn("自定义背景原生设置入口不可用", error);
+  }
   domObserver = new MutationObserver(scheduleDOMSync);
-  domObserver.observe(document.body, { childList: true, subtree: true });
+  domObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["data-app-shell-active-page"],
+  });
 
   document.addEventListener("click", handleDocumentClick);
   document.addEventListener("keydown", handleKeyDown);

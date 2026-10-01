@@ -39,11 +39,30 @@
     var(--ct-cbgp-mask-light-rgb, 246 246 246) /
     var(--ct-cbgp-mask-light-opacity, 0.72)
   );
-  transition: background-color 160ms ease;
 }
 
 [data-codex-tweaks-cbgp-wallpaper][hidden] {
   display: none;
+}
+
+[data-codex-tweaks-cbgp-window-frost] {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: rgb(255 255 255 / 0.24);
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+}
+
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-codex-tweaks-cbgp-window-frost]:not([hidden]) {
+  display: block;
+}
+
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-window-frost] {
+  background-color: rgb(20 20 24 / 0.3);
 }
 
 /* 透明来源仍保留壁纸层作为颜色遮罩与窗口底层磨砂的承载面，但不绘制
@@ -85,39 +104,141 @@
   background-color: transparent !important;
 }
 
-/* Codex 的主内容、设置页、侧边聊天及其顶/底渐变都消费同一个语义表面
-   令牌。只在壁纸启用时覆盖令牌，路由或面板重建后会自然继承；输入框、
-   按钮、菜单和弹窗继续使用各自的 control/elevated 令牌。
-
-   新版 Codex 会在会话内容内部重新声明 data-theme，局部令牌因此又回到不透明
-   底色，代码块的 sticky 操作栏恰好消费它，会显成一条突兀的白带。覆盖同时
-   命中主题根与嵌套主题节点，让这些表面继续与壁纸保持一致。 */
-:root[data-codex-tweaks-cbgp-theme],
-:root[data-codex-tweaks-cbgp-theme] [data-theme] {
-  --color-surface: rgba(255, 255, 255, 0.1) !important;
-  --color-background-surface: rgba(255, 255, 255, 0.1) !important;
+/* surface 是弹窗、卡片、输入框和 sticky 内容共用的原生令牌，不能全局
+   改成半透明。页面底色使用包内变量，并只应用在主工作区壳层上；嵌套
+   data-theme 继续保留各自的原生表面，避免弹窗透出后方聊天内容。 */
+:root[data-codex-tweaks-cbgp-theme] {
+  --ct-cbgp-page-surface: rgba(255, 255, 255, 0.1);
 }
 
-:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme],
-:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme] [data-theme] {
-  --color-surface: rgba(20, 20, 24, 0.14) !important;
-  --color-background-surface: rgba(20, 20, 24, 0.14) !important;
+:root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme] {
+  --ct-cbgp-page-surface: rgba(20, 20, 24, 0.14);
 }
 
-/* App shell 的顶部滚动渐隐在不透明表面上用于衔接工具栏；新对话页露出
-   壁纸后，它会变成一条单独的浅色横带。只在 home composer 存在时移除
-   这层渐变，普通会话滚动页继续保留原生的顶部内容保护。 */
-:root[data-codex-tweaks-cbgp-theme]:has([data-composer-placement="home"])
-  [data-app-shell-main-content-top-fade] {
+:root[data-codex-tweaks-cbgp-theme] [data-app-shell-main-surface="default"] {
+  background-color: var(--ct-cbgp-page-surface) !important;
+}
+
+/* 分栏和侧边聊天有独立面板底板，新标签页另外使用 canvas 表面。 */
+:root[data-codex-tweaks-cbgp-theme] [class*="--app-shell-panel-background"],
+:root[data-codex-tweaks-cbgp-theme] [data-app-shell-tab-panel-controller],
+:root[data-codex-tweaks-cbgp-theme] [data-new-tab-scroll-root],
+:root[data-codex-tweaks-cbgp-theme] [data-app-shell-pane-content-viewport] > [class~="bg-surface"] {
+  background-color: transparent !important;
+}
+
+/* 工具面板共用一层位于内容后方的磨砂。滤镜不放在内容祖先上，
+   侧边聊天的输入框仍可独立模糊滚动到其后方的文字。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-app-shell-tab-panel-controller] {
+  isolation: isolate;
+}
+
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-app-shell-tab-panel-controller]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--ct-cbgp-page-surface);
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+}
+
+:root[data-codex-tweaks-cbgp-theme] [data-app-shell-tab-panel-controller]
+  :is([class~="electron:bg-surface"], [class~="bg-surface"][class~="h-full"],
+      [style*="background-color: var(--color-codex-terminal-background)"]) {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 文件树和 diff 使用 Shadow DOM；通过组件提供的背景变量穿透，
+   不清除选中状态、语法颜色或增删行标记。 */
+:root[data-codex-tweaks-cbgp-theme] [data-app-shell-tab-panel-controller] {
+  --codex-diffs-surface-override: transparent;
+}
+
+:root[data-codex-tweaks-cbgp-theme] [data-app-shell-tab-panel-controller] file-tree-container {
+  --trees-bg-override: transparent;
+  background-color: transparent !important;
+}
+
+:root[data-codex-tweaks-cbgp-theme] [data-app-shell-tab-panel-controller] diffs-container {
+  /* 宿主在 shadow 内按 surface 重算代码底色；只在此叶子组件覆盖。 */
+  --color-surface: transparent;
+  --diffs-bg: transparent !important;
+  background-color: transparent !important;
+}
+
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-app-shell-tab-panel-controller] [class~="group/file-diff"] > [class~="sticky"] {
+  background-color: var(--ct-cbgp-composer-frost-surface) !important;
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+}
+
+/* dot 的嵌入聊天另外绘制两层页面底色；只清除画布，气泡和
+   Customize your dot 弹窗继续使用原生实体表面。 */
+:root[data-codex-tweaks-cbgp-theme] .messaging-root.messaging-embedded,
+:root[data-codex-tweaks-cbgp-theme]
+  .messaging-root.messaging-embedded > .workspace > .thread-pane {
+  background-color: transparent !important;
+}
+
+/* dot 用 12px 实色下边框为输入框留底部间距，透明画布上会显成白条。 */
+:root[data-codex-tweaks-cbgp-theme] .messaging-root.messaging-embedded .composer-wrap {
+  border-bottom-color: transparent !important;
+}
+
+:root[data-codex-tweaks-cbgp-theme] .messaging-root.messaging-embedded .composer-disclaimer {
+  background-color: transparent !important;
+}
+
+/* 新版页面壳的 clip-path 会把内部磨砂限制在独立的 backdrop 中，部分
+   聊天文字和图片因此原样穿过输入框。用原生 overflow 和逻辑圆角裁剪，
+   保留侧栏接缝与外侧圆角，同时让输入框采样完整的聊天画面。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-app-shell-page-sidebar="true"]
+  [data-app-shell-main-surface="default"] {
+  clip-path: none !important;
+  border-start-end-radius: var(--app-shell-main-surface-clip-end-radius, var(--radius-xl-base, 12px));
+  border-end-end-radius: var(--app-shell-main-surface-clip-end-radius, var(--radius-xl-base, 12px));
+}
+
+/* 顶部渐隐实际绘制在布局壳的装饰子节点上。工作区露出壁纸后，原生
+   surface 渐变会形成白色横带，只移除这一层，不修改共享表面令牌。 */
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-shell-main-content-top-fade]
+  > [class*="_MainContentTopFade_"],
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-shell-main-surface="default"]
+  [class~="pointer-events-none"][class~="w-[anchor-size(width)]"][class*="_background_"],
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-shell-tab-panel-controller] [class*="_background_"] {
   background-image: none !important;
 }
 
-/* 会话页会在输入框后方铺一层 from/via-surface 的底部保护渐变。surface
-   变为半透明后，渐变中段会显成边界突兀的浅色横带；输入框已有独立磨砂
-   材质，因此只在自定义背景启用时移除这层装饰。 */
+/* dot 头像的原生白色渐隐遮罩在壁纸上形成光晕，只清除头像背后的装饰层。 */
 :root[data-codex-tweaks-cbgp-theme]
-  [data-app-action-timeline-scroll]
-  [aria-hidden="true"][class~="bg-gradient-to-t"][class~="from-surface"][class~="via-surface"] {
+  [class~="group/orbit-profile"] [class~="before:mask-content-safe-area"]::before {
+  background-color: transparent !important;
+}
+
+/* 新版会话页将输入框后的保护层拆为 footer 下的实体底板和独立渐变。
+   fade 变体不含 via-surface，不能用旧版组合筛选；两层都是不可交互的
+   装饰节点，输入框和提示条继续使用各自的材质。 */
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-shell-main-surface="default"]
+  [data-thread-scroll-footer="true"]
+  > [aria-hidden="true"][class~="pointer-events-none"][class~="bg-surface"] {
+  background-color: transparent !important;
+}
+
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-shell-main-surface="default"]
+  [aria-hidden="true"][class~="pointer-events-none"][class~="bg-gradient-to-t"][class~="from-surface"] {
   background-image: none !important;
 }
 
@@ -128,6 +249,7 @@
   --color-background-primary-soft: rgba(255, 255, 255, 0.64) !important;
   --color-background-primary-soft-alpha: rgba(255, 255, 255, 0.58) !important;
   --ct-cbgp-control-frost-surface: rgba(255, 255, 255, 0.62);
+  --ct-cbgp-composer-frost-surface: rgba(255, 255, 255, 0.5);
 }
 
 :root:is([data-theme="dark"], :not([data-theme], .electron-light))[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost] {
@@ -135,17 +257,65 @@
   --color-background-primary-soft: rgba(38, 38, 46, 0.64) !important;
   --color-background-primary-soft-alpha: rgba(42, 42, 50, 0.6) !important;
   --ct-cbgp-control-frost-surface: rgba(38, 38, 46, 0.66);
+  --ct-cbgp-composer-frost-surface: rgba(38, 38, 46, 0.56);
 }
 
-/* 新对话页的 composer surface 根节点只是一个无圆角布局壳，真正的圆角材质
-   由内层 ComposerLayoutBody 提供。不要给 home 壳叠加背景或模糊，否则会在
-   圆角输入框后面形成矩形底板，并阻断内层对壁纸的原生 backdrop blur。 */
+/* 通话等局部深色面板必须使用自己的磨砂底色，不能继承浅色窗口材质。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost] [data-theme="dark"] {
+  --ct-cbgp-control-frost-surface: rgba(38, 38, 46, 0.78);
+  --ct-cbgp-composer-frost-surface: rgba(38, 38, 46, 0.66);
+}
+
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost] [data-theme="light"] {
+  --ct-cbgp-control-frost-surface: rgba(255, 255, 255, 0.62);
+  --ct-cbgp-composer-frost-surface: rgba(255, 255, 255, 0.5);
+}
+
+/* 侧边标签的选中底板和浏览器工具栏不在聊天内容树中，单独使用磨砂。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-app-shell-titlebar] [data-tab-id] > [class*="_SelectedSurface_"],
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-app-shell-tab-panel-controller] [class~="bg-surface"]:has(> div > [data-browser-sidebar-toolbar]) {
+  background-color: var(--ct-cbgp-composer-frost-surface) !important;
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+}
+
+/* 工具栏胶囊用渐变绘制底色，单改 background-color 不会生效。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-app-shell-tab-panel-controller] [class*="_controlSurface_"] {
+  background-image: none !important;
+  background-color: var(--ct-cbgp-composer-frost-surface) !important;
+}
+
+/* Composer 使用独立变量绘制材质；默认变体会明确关闭 backdrop-filter。
+   覆盖这些局部变量，让会话页根节点与首页内层圆角 Body 各自在原生绘制层
+   上应用磨砂，避免给首页布局壳额外叠加矩形底板。inline 变体保持透明。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-composer-surface-variant]:not([data-composer-surface-variant="inline"], [data-composer-surface-variant="document"]) {
+  --composer-layout-surface-background: var(--ct-cbgp-composer-frost-surface) !important;
+  --composer-layout-surface-backdrop-filter:
+    blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14) !important;
+}
+
+/* 在实际材质层直接声明，避免宿主的局部主题或样式覆盖变量后的绘制结果。
+   首页只处理圆角 Body；其外层仍是透明布局壳。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-composer-surface-variant]:not([data-composer-surface-variant="inline"], [data-composer-surface-variant="document"], [data-composer-utility-bar-variant="home"]),
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-composer-utility-bar-variant="home"][data-composer-surface-variant]:not([data-composer-surface-variant="inline"], [data-composer-surface-variant="document"])
+  [data-composer-body] {
+  background-color: var(--ct-cbgp-composer-frost-surface) !important;
+  background-image: none !important;
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14) !important;
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14) !important;
+}
+
 :root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
   :is(
     [style*="--color-background-panel"],
     [class~="bg-primary-soft-alpha"],
     [class*="bg-background-primary-soft/"],
-    [data-composer-surface-variant]:not([data-composer-utility-bar-variant="home"]),
     .ct-cbgp-select-trigger,
     .ct-cbgp-input
   ) {
@@ -154,23 +324,59 @@
 }
 
 :root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
-  [data-composer-surface-variant]:not([data-composer-utility-bar-variant="home"]),
-:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
   :is(.ct-cbgp-select-trigger, .ct-cbgp-input),
 :root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
   [class~="bg-primary-soft-alpha"]:not(:hover):not([data-state="open"]) {
   background-color: var(--ct-cbgp-control-frost-surface) !important;
 }
 
-/* 输入框上方的额度/提示条（偶发出现的 aside 横幅）直接消费 surface 令牌，
-   令牌改为半透明后它就成了完全没有材质的空洞。它和输入框同属一个 composer
-   控件族，这里补回与控件磨砂一致的实体材质，圆角与描边仍由宿主负责。 */
+/* 输入框上方的额度/提示条与输入框同属一个 composer 控件族，统一使用
+   控件磨砂材质，圆角与描边仍由宿主负责。 */
 :root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
   [data-codex-composer-root]
   aside[class~="bg-surface"] {
   background-color: var(--ct-cbgp-control-frost-surface) !important;
   backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
   -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+}
+
+/* 聊天区域里的任务卡片、待发送队列和错误提示同样使用 surface。
+   直接给这些控件绘制磨砂，不改共享令牌；装饰底板和弹窗不参与覆盖。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-includes-composer="true"]
+  :is([class~="bg-surface"], [class~="bg-surface-elevated-primary"], [class~="bg-surface-elevated-secondary"]):where(:not([aria-hidden="true"], [role="dialog"], [role="dialog"] *, dialog, dialog *, [data-summary-panel-variant], [data-summary-panel-variant] *)),
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  .messaging-root.messaging-embedded
+  :is(.attachment-conversation-card, .attachment-shared-conversation-card, .composer-upload, .conversation-footer .typing-indicator:not(:empty)) {
+  background-color: var(--ct-cbgp-control-frost-surface) !important;
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+}
+
+/* 滚动记录中的卡片保留半透明底色，但不逐个采样、模糊背后的整段内容。
+   固定输入框、待发送队列和侧栏不在记录容器中，继续使用独立磨砂。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  :is([data-thread-find-target="conversation"], .messaging-root.messaging-embedded .message-list)
+  :is(
+    [style*="--color-background-panel"],
+    [class~="bg-primary-soft-alpha"],
+    [class*="bg-background-primary-soft/"],
+    [class~="bg-surface"],
+    [class~="bg-surface/70"],
+    [class~="bg-surface-elevated-primary"],
+    [class~="bg-surface-elevated-secondary"],
+    .attachment-conversation-card,
+    .attachment-shared-conversation-card
+  ):where(:not([role="dialog"], [role="dialog"] *, dialog, dialog *, [data-composer-surface-variant], [data-composer-surface-variant] *)) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 文件行复用卡片底色，避免再叠 70% 白色；悬浮高亮仍由原生样式提供。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-includes-composer="true"] [class~="group/turn-diff-file-row"]
+  button[class~="bg-surface/70"]:not(:hover) {
+  background-color: transparent !important;
 }
 
 /* 首页建议卡片原本把 ghost hover 当作叠加色使用；基础表面透明后需单独
@@ -189,10 +395,42 @@
   background-color: rgba(48, 48, 56, 0.78) !important;
 }
 
-/* 左侧导航使用独立的 Electron 半透明白底，不消费 surface 令牌。它是
-   少数需要按稳定宿主结构单独归零的表面，内部选中与悬浮状态仍由原生控件负责。 */
+/* 停靠侧栏与标题栏、外圈共用底层磨砂，避免内外侧栏叠出不同白度。
+   浮动侧栏使用下方独立外壳材质。 */
 :root[data-codex-tweaks-cbgp-theme] .app-shell-left-panel {
   background-color: transparent !important;
+  background-image: none !important;
+}
+
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  .app-shell-left-panel:not([data-slate-sidebar-peeking="true"])
+  :is([data-slate-sidebar-content], .sidebar-navigation) {
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 右侧任务摘要与 dot 资料卡共用整张卡片的材质。内部标题、行背景及
+   装饰渐变不再重复叠加白色；不改变原生按钮的悬浮和选中状态。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost] [data-summary-panel-variant] {
+  /* 使用卡片自己的主题，通话卡片在浅色窗口中也可能是深色。 */
+  background-color: color-mix(in srgb, var(--color-surface-elevated-secondary) 50%, transparent) !important;
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+}
+
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-summary-panel-variant] :is([class~="bg-surface"], [class~="bg-surface-elevated-secondary"]),
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-summary-panel-variant] [class~="before:bg-surface-elevated-secondary"]::before {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-summary-panel-variant] [class~="from-surface-elevated-secondary"] {
   background-image: none !important;
 }
 
@@ -668,44 +906,35 @@
   }
 }
 
-/* ------------------ 独立设置面板 ------------------ */
+/* ------------------ 设置页内容 ------------------ */
 
-[data-codex-tweaks-cbgp-settings-dialog] {
-  width: min(760px, calc(100vw - 32px));
-  max-width: none;
-  max-height: calc(100dvh - 48px);
-  box-sizing: border-box;
-  padding: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  border: 0;
-  border-radius: 16px;
-  background: #f6f6f6;
-  color: #202124;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+/* 原生布局选择器在首帧生效，不等待 DOM observer 标记，避免切页闪白。 */
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-shell-focus-area="main"] [class~="electron:bg-surface"]:has(> .scrollbar-stable) {
+  background-color: transparent !important;
 }
 
-[data-codex-tweaks-cbgp-settings-dialog]::backdrop {
-  background: rgba(20, 20, 24, 0.3);
+/* 设置页固定搜索栏去掉实体底板与白色渐变，搜索控件保留磨砂。 */
+:root[data-codex-tweaks-cbgp-theme][data-codex-tweaks-cbgp-frost]
+  [data-app-shell-focus-area="main"] [class~="electron:bg-surface"]:has(> .scrollbar-stable)
+  :is([class~="bg-surface"], [class~="bg-page-search"], th):where(:not([role="dialog"], [role="dialog"] *, dialog, dialog *)) {
+  background-color: var(--ct-cbgp-control-frost-surface) !important;
+  backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
 }
 
-:root:is([data-theme="dark"], :not([data-theme], .electron-light)) [data-codex-tweaks-cbgp-settings-dialog] {
-  background: #202024;
-  color: #f4f4f5;
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-shell-focus-area="main"] [class~="electron:bg-surface"]:has(> .scrollbar-stable)
+  [class~="sticky"][class~="bg-surface"] {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-.ct-cbgp-settings-close {
-  position: sticky;
-  top: 12px;
-  z-index: 2;
-  display: block;
-  margin: 12px 16px 0 auto;
-}
-
-[data-codex-tweaks-cbgp-settings-dialog] [data-codex-tweaks-cbgp-settings-panel] {
-  box-sizing: border-box;
-  min-height: 0;
-  padding-top: 8px;
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-shell-focus-area="main"] [class~="electron:bg-surface"]:has(> .scrollbar-stable)
+  [class~="after:from-surface"]::after {
+  background-image: none !important;
 }
 
 [data-codex-tweaks-cbgp-settings-panel] {
@@ -750,6 +979,9 @@
   margin: 0 0 10px;
 }
 
+/* 背景图默认会平铺且从 padding 盒起算，cover 缩放后描边下方会露出相邻
+   一块图像的边缘，在圆角边上显成一圈暗线。改为从 border 盒铺满且不平铺，
+   半透明描边只作为叠在图像边缘上的细线。 */
 .ct-cbgp-preview {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -757,6 +989,8 @@
   background-color: rgba(128, 128, 128, 0.12);
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
+  background-origin: border-box;
   border: 1px solid rgba(128, 128, 128, 0.18);
 }
 
@@ -784,6 +1018,7 @@
     rgba(255, 255, 255, 0.44) 0
   );
   background-size: 20px 20px;
+  background-repeat: repeat;
 }
 
 .ct-cbgp-preview.ct-cbgp-transparent::after {
@@ -1177,8 +1412,7 @@
   border-radius: 4px;
 }
 
-.ct-cbgp-color-input:focus-visible,
-.ct-cbgp-range:focus-visible {
+.ct-cbgp-color-input:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
@@ -1194,39 +1428,99 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+/* 滑杆为 14px 圆角轨道，白点嵌在进度末端。拇指是与轨道等高的透明圆，
+   中心随取值在 [7px, 100% - 7px] 间移动；填充画到拇指右缘，末端用同心
+   圆补出圆角，白点始终落在圆角端头正中。线性层与圆角层在端头重叠，
+   填充色必须不透明，否则重叠处会叠深。 */
 .ct-cbgp-range {
+  --ct-cbgp-range-accent: #3b82f6;
+  --ct-cbgp-range-muted: #b2b2b8;
+  --ct-cbgp-range-track: rgba(0, 0, 0, 0.08);
+  --ct-cbgp-range-dot: #ffffff;
+  --ct-cbgp-range-ring: rgba(59, 130, 246, 0.28);
   appearance: none;
   width: 100%;
   min-width: 0;
-  height: 16px;
+  height: 20px;
+  margin: 0;
   background: transparent;
-  accent-color: #3b82f6;
   cursor: pointer;
+  outline: none;
+}
+
+:root:is([data-theme="dark"], :not([data-theme], .electron-light)) .ct-cbgp-range {
+  --ct-cbgp-range-accent: #4d9cff;
+  --ct-cbgp-range-muted: #5e5e66;
+  --ct-cbgp-range-track: rgba(255, 255, 255, 0.1);
+  --ct-cbgp-range-dot: #ffffff;
+  --ct-cbgp-range-ring: rgba(77, 156, 255, 0.34);
 }
 
 .ct-cbgp-range::-webkit-slider-runnable-track {
-  height: 4px;
+  --ct-cbgp-range-paint: var(--ct-cbgp-range-accent);
+  --ct-cbgp-range-cap: calc(7px + (100% - 14px) * var(--ct-cbgp-range-progress, 0));
+  height: 14px;
   border-radius: 999px;
-  background: linear-gradient(
-    to right,
-    #3b82f6 var(--ct-cbgp-range-fill, 0%),
-    rgba(128, 128, 128, 0.3) var(--ct-cbgp-range-fill, 0%)
-  ) !important;
+  background:
+    radial-gradient(
+      circle 7px at var(--ct-cbgp-range-cap) 50%,
+      var(--ct-cbgp-range-paint) 6.5px,
+      transparent 7px
+    ),
+    linear-gradient(
+      to right,
+      var(--ct-cbgp-range-paint) var(--ct-cbgp-range-cap),
+      transparent var(--ct-cbgp-range-cap)
+    ),
+    var(--ct-cbgp-range-track) !important;
 }
 
 .ct-cbgp-range::-webkit-slider-thumb {
   appearance: none;
-  width: 16px;
-  height: 16px;
-  margin-top: -6px;
+  width: 14px;
+  height: 14px;
   border: 0;
   border-radius: 50%;
-  background: #3b82f6;
+  background: radial-gradient(
+    circle 3.5px,
+    var(--ct-cbgp-range-dot) 3px,
+    transparent 3.5px
+  );
+  box-shadow: 0 0 0 0 var(--ct-cbgp-range-ring);
+  transition:
+    transform 160ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 160ms ease;
+}
+
+.ct-cbgp-range:not(:disabled):hover::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+.ct-cbgp-range:not(:disabled):active::-webkit-slider-thumb {
+  transform: scale(1.25);
+}
+
+.ct-cbgp-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--ct-cbgp-range-ring);
 }
 
 .ct-cbgp-range:disabled {
   cursor: default;
-  opacity: 0.42;
+  opacity: 0.55;
+}
+
+.ct-cbgp-range:disabled::-webkit-slider-runnable-track {
+  --ct-cbgp-range-paint: var(--ct-cbgp-range-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ct-cbgp-range::-webkit-slider-thumb {
+    transition: none;
+  }
+}
+
+.ct-cbgp-frost-controls:has(.ct-cbgp-range:disabled) .ct-cbgp-range-value {
+  opacity: 0.36;
 }
 
 .ct-cbgp-range-value {
@@ -1272,6 +1566,8 @@
   background-color: rgba(128, 128, 128, 0.14);
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
+  background-origin: border-box;
   border: 1px solid rgba(128, 128, 128, 0.2);
   transition: transform 150ms ease, box-shadow 150ms ease;
   position: relative;
