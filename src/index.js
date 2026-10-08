@@ -56,6 +56,13 @@ const HISTORY_LIMIT = 10;
 const STORED_IMAGE_MAX_EDGE = 2560;
 const STORED_IMAGE_QUALITY = 0.82;
 const DOM_SYNC_DEBOUNCE_MS = 80;
+const PAGE_ANCHOR_SELECTOR = [
+  "[data-app-shell-active-page]",
+  '[data-app-shell-main-surface="default"]',
+  "button[data-settings-panel-slug]",
+  "aside.app-shell-left-panel",
+  'main[class*="MainContentSurface"]',
+].join(", ");
 const MASK_DEFAULTS = Object.freeze({
   light: Object.freeze({ color: "#f6f6f6", opacity: 0.72 }),
   dark: Object.freeze({ color: "#141418", opacity: 0.76 }),
@@ -241,6 +248,7 @@ export function activate({ api, node, ui }) {
   let windowFrostNode = null;
   let windowFrostSurface = null;
   let windowFrostObserver = null;
+  let windowFrostClip = "";
   let randomButtonNode = null;
   let randomButtonTriggerNode = null;
   let backgroundToggleNode = null;
@@ -512,8 +520,15 @@ export function activate({ api, node, ui }) {
 
   function syncWindowFrost() {
     if (disposed || !wallpaperNode?.isConnected) return;
+    if (!state.frostEnabled || !runtimeHost.hasAttribute(THEME_MARKER)) {
+      windowFrostObserver?.disconnect();
+      windowFrostSurface = null;
+      if (windowFrostNode && !windowFrostNode.hidden) windowFrostNode.hidden = true;
+      return;
+    }
     if (!windowFrostNode?.isConnected) {
       windowFrostNode = document.createElement("div");
+      windowFrostClip = "";
       windowFrostNode.setAttribute(WINDOW_FROST_MARKER, "");
       windowFrostNode.setAttribute("aria-hidden", "true");
       wallpaperNode.after(windowFrostNode);
@@ -527,7 +542,7 @@ export function activate({ api, node, ui }) {
         windowFrostObserver.observe(surface);
       }
     }
-    windowFrostNode.hidden = !surface;
+    if (windowFrostNode.hidden !== !surface) windowFrostNode.hidden = !surface;
     if (!surface) return;
     // 一个独立的底层磨砂面覆盖侧栏、标题栏和外圈，中间工作区挖空。
     // 不把滤镜加在应用祖先上，避免再次截断输入框的 backdrop 采样。
@@ -535,7 +550,11 @@ export function activate({ api, node, ui }) {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const clip = `polygon(evenodd, 0px 0px, ${width}px 0px, ${width}px ${height}px, 0px ${height}px, 0px 0px, ${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px, ${left}px ${top}px, 0px 0px)`;
-    if (windowFrostNode.style.clipPath !== clip) windowFrostNode.style.clipPath = clip;
+    // CSSOM 会把小数坐标舍入，不能用序列化后的样式与原始坐标比较。
+    if (windowFrostClip !== clip) {
+      windowFrostNode.style.clipPath = clip;
+      windowFrostClip = clip;
+    }
   }
 
   function applyWallpaper() {
@@ -555,6 +574,7 @@ export function activate({ api, node, ui }) {
       node.style.removeProperty("--ct-cbgp-bg-image");
       runtimeHost.removeAttribute(THEME_MARKER);
       removeFrostAppearance();
+      syncWindowFrost();
       syncRandomButtonControls();
       return;
     }
@@ -581,6 +601,7 @@ export function activate({ api, node, ui }) {
     windowFrostSurface = null;
     windowFrostNode?.remove();
     windowFrostNode = null;
+    windowFrostClip = "";
   }
 
   /* ---------------------------- 随机与固定来源 ---------------------------- */
@@ -1350,7 +1371,7 @@ export function activate({ api, node, ui }) {
     // 隐藏聊天页快捷按钮后，仍可从 Codex 设置页打开背景面板。
     const visible = !disposed && !panelOpen &&
       (isSettingsPage() || (state.showButton && isChatPage()));
-    randomButtonNode.hidden = !visible;
+    if (randomButtonNode.hidden !== !visible) randomButtonNode.hidden = !visible;
     syncRandomButtonTrigger(getLocaleStrings());
     // 页内内容更新不改变固定按钮的位置；只在重新显示或窗口 resize 时定位。
     if (visible && wasHidden && !randomButtonDragging && randomButtonSnapTimer === null) {
@@ -2635,6 +2656,29 @@ export function activate({ api, node, ui }) {
     }, DOM_SYNC_DEBOUNCE_MS);
   }
 
+  function handleDOMMutations(records) {
+    if (!wallpaperNode?.isConnected || !randomButtonNode?.isConnected ||
+        (windowFrostNode && !windowFrostNode.isConnected)) {
+      scheduleDOMSync();
+      return;
+    }
+    for (const record of records) {
+      if (record.type === "attributes") {
+        scheduleDOMSync();
+        return;
+      }
+      // 流式文本、工具结果、菜单和侧栏列表更新都不会改变页面壳。
+      // 只检查本次增删的子树，不因此重新扫描页面或读取布局。
+      for (const node of [...record.addedNodes, ...record.removedNodes]) {
+        if (node instanceof Element &&
+            (node.matches(PAGE_ANCHOR_SELECTOR) || node.querySelector(PAGE_ANCHOR_SELECTOR))) {
+          scheduleDOMSync();
+          return;
+        }
+      }
+    }
+  }
+
   function cleanup() {
     if (disposed) return;
     disposed = true;
@@ -2681,13 +2725,14 @@ export function activate({ api, node, ui }) {
   } catch (error) {
     console.warn("自定义背景原生设置入口不可用", error);
   }
-  domObserver = new MutationObserver(scheduleDOMSync);
+  domObserver = new MutationObserver(handleDOMMutations);
   domObserver.observe(document.body, {
     childList: true,
     subtree: true,
     attributes: true,
     attributeFilter: ["data-app-shell-active-page"],
   });
+  domObserver.observe(runtimeHost, { attributes: true, attributeFilter: ["lang"] });
 
   document.addEventListener("click", handleDocumentClick);
   document.addEventListener("keydown", handleKeyDown);
