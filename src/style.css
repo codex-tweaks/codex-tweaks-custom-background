@@ -179,11 +179,11 @@
   -webkit-backdrop-filter: blur(var(--ct-cbgp-frost-blur, 17px)) saturate(1.14);
 }
 
-/* dot 的嵌入聊天另外绘制两层页面底色；只清除画布，气泡和
+/* dot 的嵌入聊天在内外 thread-pane 上绘制底色；只清除画布，气泡和
    Customize your dot 弹窗继续使用原生实体表面。 */
 :root[data-codex-tweaks-cbgp-theme] .messaging-root.messaging-embedded,
 :root[data-codex-tweaks-cbgp-theme]
-  .messaging-root.messaging-embedded > .workspace > .thread-pane {
+  .messaging-root.messaging-embedded .thread-pane {
   background-color: transparent !important;
 }
 
@@ -207,14 +207,17 @@
   border-end-end-radius: var(--app-shell-main-surface-clip-end-radius, var(--radius-xl-base, 12px));
 }
 
-/* 顶部渐隐实际绘制在布局壳的装饰子节点上。工作区露出壁纸后，原生
-   surface 渐变会形成白色横带，只移除这一层，不修改共享表面令牌。 */
+/* 页面顶部和 dot 浮动头像栏各有渐隐装饰层。工作区露出壁纸后，原生
+   surface 渐变会形成白色横带，只移除这些渐变，不修改共享表面令牌。 */
 :root[data-codex-tweaks-cbgp-theme]
   [data-app-shell-main-content-top-fade]
   > [class*="_MainContentTopFade_"],
 :root[data-codex-tweaks-cbgp-theme]
   [data-app-shell-main-surface="default"]
   [class~="pointer-events-none"][class~="w-[anchor-size(width)]"][class*="_background_"],
+:root[data-codex-tweaks-cbgp-theme]
+  [data-app-shell-main-surface="default"]
+  [aria-hidden="true"][class~="pointer-events-none"][class~="w-[anchor-size(width)]"][class*="_floatingHeader_"],
 :root[data-codex-tweaks-cbgp-theme]
   [data-app-shell-tab-panel-controller] [class*="_background_"] {
   background-image: none !important;
