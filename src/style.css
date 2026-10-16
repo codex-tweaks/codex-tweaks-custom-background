@@ -1926,3 +1926,11 @@
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
+
+/* Windows 26.1013: footer fade/combined gradients moved into a CSS module.
+   Match only the inert native surface decoration; keep composer materials intact. */
+:root[data-codex-os="win32"][data-codex-tweaks-cbgp-theme]
+  [data-app-shell-main-surface="default"]
+  [aria-hidden="true"][class~="pointer-events-none"][class~="from-surface"][class*="_background_"] {
+  background-image: none !important;
+}
