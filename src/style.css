@@ -229,9 +229,9 @@
   background-color: transparent !important;
 }
 
-/* 新版会话页将输入框后的保护层拆为 footer 下的实体底板和独立渐变。
-   fade 变体不含 via-surface，不能用旧版组合筛选；两层都是不可交互的
-   装饰节点，输入框和提示条继续使用各自的材质。 */
+/* 会话页将输入框后的保护层拆为 footer 下的实体底板和独立渐变。
+   渐变由 CSS 模块绘制，不再带 bg-gradient-to-t，且各平台共用。
+   只清除不可交互的装饰层，输入框和提示条继续使用各自的材质。 */
 :root[data-codex-tweaks-cbgp-theme]
   [data-app-shell-main-surface="default"]
   [data-thread-scroll-footer="true"]
@@ -241,7 +241,7 @@
 
 :root[data-codex-tweaks-cbgp-theme]
   [data-app-shell-main-surface="default"]
-  [aria-hidden="true"][class~="pointer-events-none"][class~="bg-gradient-to-t"][class~="from-surface"] {
+  [aria-hidden="true"][class~="pointer-events-none"][class~="from-surface"][class*="_background_"] {
   background-image: none !important;
 }
 
@@ -1925,12 +1925,4 @@
 .ct-cbgp-confirm-button:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
-}
-
-/* Windows 26.1013: footer fade/combined gradients moved into a CSS module.
-   Match only the inert native surface decoration; keep composer materials intact. */
-:root[data-codex-os="win32"][data-codex-tweaks-cbgp-theme]
-  [data-app-shell-main-surface="default"]
-  [aria-hidden="true"][class~="pointer-events-none"][class~="from-surface"][class*="_background_"] {
-  background-image: none !important;
 }
