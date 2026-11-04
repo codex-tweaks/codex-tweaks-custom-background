@@ -211,7 +211,7 @@
    surface 渐变会形成白色横带，只移除这些渐变，不修改共享表面令牌。 */
 :root[data-codex-tweaks-cbgp-theme]
   [data-app-shell-main-content-top-fade]
-  > [class*="_MainContentTopFade_"],
+  > [aria-hidden="true"],
 :root[data-codex-tweaks-cbgp-theme]
   [data-app-shell-main-surface="default"]
   [class~="pointer-events-none"][class~="w-[anchor-size(width)]"][class*="_background_"],
@@ -230,7 +230,7 @@
 }
 
 /* 会话页将输入框后的保护层拆为 footer 下的实体底板和独立渐变。
-   渐变由 CSS 模块绘制，不再带 bg-gradient-to-t，且各平台共用。
+   用语义属性和渐变起点定位，不依赖 CSS 模块的类名格式。
    只清除不可交互的装饰层，输入框和提示条继续使用各自的材质。 */
 :root[data-codex-tweaks-cbgp-theme]
   [data-app-shell-main-surface="default"]
@@ -241,7 +241,7 @@
 
 :root[data-codex-tweaks-cbgp-theme]
   [data-app-shell-main-surface="default"]
-  [aria-hidden="true"][class~="pointer-events-none"][class~="from-surface"][class*="_background_"] {
+  [aria-hidden="true"][class~="pointer-events-none"][class~="from-surface"] {
   background-image: none !important;
 }
 
