@@ -21,6 +21,11 @@
   --ct-cbgp-image-repeat: repeat;
 }
 
+:is([data-codex-tweaks-cbgp-wallpaper], .ct-cbgp-preview)[data-image-layout="tile-fit"] {
+  --ct-cbgp-image-size: auto 100%;
+  --ct-cbgp-image-repeat: repeat-x;
+}
+
 /* 图片、背景磨砂和颜色遮罩拆成独立层：背景磨砂只模糊原图，遮罩颜色
    保持均匀；扩大图片层可避免高强度模糊在窗口边缘产生空白。 */
 [data-codex-tweaks-cbgp-wallpaper]::before,

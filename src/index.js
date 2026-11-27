@@ -2072,7 +2072,8 @@ export function activate({ api, node, ui }) {
         options: [
           [DEFAULT_IMAGE_LAYOUT, isChinese ? "填满窗口" : "Fill window"],
           ["contain", isChinese ? "完整显示" : "Fit entire image"],
-          ["tile", isChinese ? "平铺" : "Tile"],
+          ["tile", isChinese ? "默认平铺" : "Default tile"],
+          ["tile-fit", isChinese ? "适应平铺" : "Fit tile"],
         ],
         ariaLabel: layoutTitle.textContent,
         onChange: (value) => {

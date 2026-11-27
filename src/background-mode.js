@@ -9,12 +9,19 @@ const BACKGROUND_KINDS = new Set([
   "local",
 ]);
 
+const IMAGE_LAYOUTS = new Set([
+  DEFAULT_IMAGE_LAYOUT,
+  "contain",
+  "tile",
+  "tile-fit",
+]);
+
 export function normalizeBackgroundKind(kind) {
   return BACKGROUND_KINDS.has(kind) ? kind : "none";
 }
 
 export function normalizeImageLayout(layout) {
-  return layout === "contain" || layout === "tile" ? layout : DEFAULT_IMAGE_LAYOUT;
+  return IMAGE_LAYOUTS.has(layout) ? layout : DEFAULT_IMAGE_LAYOUT;
 }
 
 export function hasConfiguredBackgroundKind(kind, resolvedImageUrl) {

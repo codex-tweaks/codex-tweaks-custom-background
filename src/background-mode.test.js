@@ -32,7 +32,7 @@ test("keeps transparent sources out of image history", () => {
 });
 
 test("preserves supported image layouts and defaults old or invalid settings to cover", () => {
-  for (const layout of ["cover", "contain", "tile"]) {
+  for (const layout of ["cover", "contain", "tile", "tile-fit"]) {
     assert.equal(normalizeImageLayout(layout), layout);
   }
   for (const layout of [undefined, null, "unsupported", {}]) {
